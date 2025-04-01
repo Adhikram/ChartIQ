@@ -1,25 +1,5 @@
 import axios from 'axios';
-
-export interface ChatMessage {
-  id: string;
-  content: string;
-  timestamp: Date;
-  isUser: boolean;
-  asset?: string;
-  chartUrl?: string;
-}
-
-export interface ChatResponse {
-  messages: ChatMessage[];
-  error?: string;
-}
-
-export interface ChatHistory {
-  id: string;
-  messages: ChatMessage[];
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { ChatMessage, ChatHistory, ChatResponse, AnalysisHistoryResponse } from '../types/chatService';
 
 class ChatService {
   private static instance: ChatService;
@@ -34,6 +14,30 @@ class ChatService {
     return ChatService.instance;
   }
 
+  public async loadChatHistory(userId: string): Promise<ChatHistory[]> {
+    try {
+      const response = await axios.get<AnalysisHistoryResponse[]>(`/api/analysis-history/${userId}`);
+      
+      // Convert the API response to ChatHistory format
+      return response.data.map(analysis => ({
+        id: analysis.id,
+        messages: analysis.messages.map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          isUser: msg.role === 'USER',
+          asset: analysis.symbol,
+          chartUrl: analysis.chartUrls[0]
+        })),
+        createdAt: new Date(analysis.createdAt),
+        updatedAt: new Date(analysis.createdAt)
+      }));
+    } catch (error) {
+      console.error('Error loading chat history:', error);
+      return [];
+    }
+  }
+
   public async sendMessage(symbol: string): Promise<ChatResponse> {
     try {
       // Add user message
@@ -44,33 +48,77 @@ class ChatService {
         isUser: true,
         asset: symbol,
       };
-      this.messages.push(userMessage);
+      this.messages = [userMessage]; // Reset messages for new analysis
 
       // Generate charts using internal API
-      const chartsResponse = await axios.post('/api/generate-charts', { symbol });
-      if (!chartsResponse.data.chartUrls) {
+      const chartsResponse = await axios.post<{ chartUrls: string[] }>('/api/generate-charts', { symbol });
+      if (!chartsResponse.data.chartUrls?.length) {
         throw new Error('Failed to generate charts');
       }
 
-      // Analyze charts using internal API
-      const analysisResponse = await axios.post('/api/analyze-charts', { 
-        chartUrls: chartsResponse.data.chartUrls,
-        symbol 
+      // Analyze charts using internal API with proper streaming configuration
+      const analysisResponse = await fetch('/api/analyze-charts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          chartUrls: chartsResponse.data.chartUrls,
+          symbol 
+        })
       });
-      
-      if (!analysisResponse.data.analysis) {
+
+      if (!analysisResponse.ok) {
         throw new Error('Failed to analyze charts');
       }
 
-      // Add AI response
-      const aiMessage: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        content: analysisResponse.data.analysis,
-        timestamp: new Date(),
-        isUser: false,
-        chartUrl: chartsResponse.data.chartUrls[0],
-      };
-      this.messages.push(aiMessage);
+      const reader = analysisResponse.body?.getReader();
+      if (!reader) {
+        throw new Error('Failed to get stream reader');
+      }
+
+      let analysis = '';
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(5));
+              switch (data.type) {
+                case 'content':
+                  analysis += data.data;
+                  // Update the AI message in real-time
+                  const updatedAiMessage: ChatMessage = {
+                    id: (Date.now() + 1).toString(),
+                    content: analysis,
+                    timestamp: new Date(),
+                    isUser: false,
+                    chartUrl: chartsResponse.data.chartUrls[0],
+                  };
+                  this.messages = [userMessage, updatedAiMessage];
+                  break;
+                case 'error':
+                  throw new Error(data.error);
+                case 'done':
+                  // Final update
+                  break;
+              }
+            } catch (e) {
+              console.error('Failed to parse chunk:', e);
+            }
+          }
+        }
+      }
+
+      // Save the analysis
+      await this.saveAnalysis(symbol, analysis, chartsResponse.data.chartUrls);
 
       return {
         messages: this.messages,
@@ -81,6 +129,20 @@ class ChatService {
         messages: this.messages,
         error: error instanceof Error ? error.message : 'An error occurred while processing your request',
       };
+    }
+  }
+
+  private async saveAnalysis(symbol: string, analysis: string, chartUrls: string[]): Promise<void> {
+    try {
+      await axios.post('/api/save-analysis', {
+        symbol,
+        analysis,
+        chartUrls,
+        userId: 'user123', // Replace with actual user ID from auth system
+      });
+    } catch (error) {
+      console.error('Error saving analysis:', error);
+      // Don't throw error here, just log it
     }
   }
 
@@ -115,28 +177,6 @@ class ChatService {
         analysis: '',
         error: 'Failed to analyze charts. Please try again later.',
       };
-    }
-  }
-
-  private async saveChatHistory(): Promise<void> {
-    try {
-      await axios.post('/api/save-analysis', {
-        messages: this.messages,
-        userId: 'user123', // Replace with actual user ID
-      });
-    } catch (error) {
-      console.error('Error saving chat history:', error);
-      throw new Error('Failed to save chat history');
-    }
-  }
-
-  public async loadChatHistory(userId: string): Promise<ChatHistory[]> {
-    try {
-      const response = await axios.get('/api/analysis-history/' + userId);
-      return response.data;
-    } catch (error) {
-      console.error('Error loading chat history:', error);
-      return [];
     }
   }
 }

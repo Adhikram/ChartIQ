@@ -43,8 +43,12 @@ logs
 .tmp/
 *.bak
 *.tmp
-*.png
 *~
+
+# Images to ignore (but keep screenshots)
+# Ignore all PNGs except those in the screenshots directory
+*.png
+!screenshots/*.png
 
 # OS generated files
 .DS_Store

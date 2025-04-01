@@ -6,7 +6,9 @@ import { PrismaClient } from '@prisma/client';
 import OpenAI from 'openai';
 
 const prisma = new PrismaClient();
-const openai = new OpenAI();
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
 
 // Ensure the screenshots directory exists
 const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
@@ -100,7 +102,7 @@ async function generateConcurrentScreenshots(symbol: string, analysisId: string)
 async function analyzeCharts(paths: string[], symbol: string, analysisId: string) {
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o",
       messages: [
         {
           role: "user",
