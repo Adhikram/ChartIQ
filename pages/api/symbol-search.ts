@@ -1,6 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import axios from 'axios';
 
+// Helper function to remove HTML tags from strings
+const stripHtmlTags = (str: string): string => {
+  return str.replace(/<\/?[^>]+(>|$)/g, '');
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -41,15 +46,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Transform data to more usable format
     const symbols = response.data.symbols?.map((s: any) => {
-      const exchangeCode = s.exchange.split(' ')[0];
-      const id = s.prefix ? `${s.prefix}:${s.symbol}` : `${exchangeCode.toUpperCase()}:${s.symbol}`;
+      // Clean up symbol and exchange before generating id
+      const cleanSymbol = stripHtmlTags(s.symbol);
+      const cleanExchange = stripHtmlTags(s.exchange);
+      const exchangeCode = cleanExchange.split(' ')[0];
+      
+      // Generate a clean ID without any HTML tags
+      let id;
+      if (s.prefix) {
+        const cleanPrefix = stripHtmlTags(s.prefix);
+        id = `${cleanPrefix}:${cleanSymbol}`;
+      } else {
+        id = `${exchangeCode.toUpperCase()}:${cleanSymbol}`;
+      }
+      
+      // Store original description for highlighting
+      const originalDescription = s.description;
       
       return {
         id,
-        symbol: s.symbol,
+        symbol: cleanSymbol,
         exchange: exchangeCode,
-        fullExchange: s.exchange,
-        description: s.description,
+        fullExchange: cleanExchange,
+        // Keep description with <em> tags for highlighting
+        description: originalDescription,
         type: s.type,
         currency_code: s.currency_code,
         // Additional fields
