@@ -12,19 +12,18 @@ import {
   Drawer, 
   List, 
   ListItem, 
-  ListItemText, 
-  ListItemButton, 
-  ListItemAvatar, 
-  Avatar, 
-  Divider,
   Chip,
   Tabs,
   Tab
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ChatService from '../services/chatService';
-import { ChatMessage, StyledProps, TradingViewWidget } from '../types';
+import { ChatMessage, StyledProps, TradingViewWidget, AnalysisItem } from '../types';
 import ReactMarkdown from 'react-markdown';
+import Chart from './Chart';
+import SymbolSearch from './SymbolSearch';
+import AnalysisHistory from './AnalysisHistory';
+import Chat from './Chat';
 
 // Styled components with improved sizing and spacing
 const ChartContainer = styled(Paper)(({ theme }: StyledProps) => ({
@@ -276,21 +275,6 @@ function TabPanel(props: TabPanelProps) {
   );
 }
 
-// Interface for analysis history items
-interface AnalysisItem {
-  id: string;
-  symbol: string;
-  status: string;
-  createdAt: string;
-  messages: {
-    id: string;
-    content: string;
-    role: string;
-    timestamp: string;
-  }[];
-  chartUrls: string[];
-}
-
 // Add TradingView MediumWidget interface
 interface TradingViewSymbolData {
   name: string;
@@ -306,14 +290,6 @@ interface TradingViewSymbolMessage {
   method?: string;
   symbol?: string;
   params?: string[];
-}
-
-declare global {
-  interface Window {
-    TradingView: {
-      widget: new (config: any) => TradingViewWidget;
-    };
-  }
 }
 
 // More polished button
@@ -780,6 +756,11 @@ const ChartIQ: React.FC = () => {
         console.log('Setting initial symbol from URL:', urlSymbol);
         setSymbol(urlSymbol);
         symbolRef.current = urlSymbol;
+      } else if (!symbolRef.current) {
+        // Default to Bitcoin if no symbol is set
+        console.log('No symbol found, defaulting to Bitcoin');
+        setSymbol('BINANCE:BTCUSDT');
+        symbolRef.current = 'BINANCE:BTCUSDT';
       }
       
       initializeChart();
@@ -906,6 +887,9 @@ const ChartIQ: React.FC = () => {
 
   // Handle analyze button click - using the current symbol
   const handleAnalyze = async () => {
+    // Reset messages and selectedAnalysisId for a fresh chat session
+    setMessages([]);
+    setSelectedAnalysisId(null);
     // First log the current state of symbols
     console.log('Symbol state before analysis:', {
       symbolState: symbol,
@@ -938,7 +922,6 @@ const ChartIQ: React.FC = () => {
     
     // Clear existing messages if not continuing an analysis
     if (!selectedAnalysisId) {
-      setMessages([]);
       setStreamingContent('');
     }
     
@@ -1192,325 +1175,89 @@ const ChartIQ: React.FC = () => {
 
   return (
     <FullHeightBox>
-      {/* Sidebar with Analysis History - Now labeled as Chat Dashboard */}
-      <StyledDrawer variant="permanent" anchor="left">
-        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
-          <Typography variant="h6" noWrap component="div" sx={{ color: 'error.main', fontWeight: 'bold' }}>
-            Chat History
-          </Typography>
-        </Box>
-        <Divider />
-        <List sx={{ overflow: 'auto', flex: 1 }}>
-          {history.map((analysis) => (
-            <HistoryListItem 
-              key={analysis.id}
-              disablePadding
-              sx={{ position: 'relative' }}
-            >
-              <ListItemButton 
-                onClick={() => handleSelectAnalysis(analysis)}
-                selected={selectedAnalysisId === analysis.id}
-                dense
-                sx={{ py: 1.5 }}
-              >
-                <ListItemAvatar>
-                  <Avatar sx={{ bgcolor: 'primary.main' }}>
-                    {analysis.symbol.substring(0, 1)}
-                  </Avatar>
-                </ListItemAvatar>
-                <ListItemText 
-                  primary={analysis.symbol} 
-                  secondary={new Date(analysis.createdAt).toLocaleString()}
-                  primaryTypographyProps={{ noWrap: true }}
-                />
-                <StatusBadge status={analysis.status}>
-                  {getStatusDisplay(analysis.status)}
-                </StatusBadge>
-              </ListItemButton>
-            </HistoryListItem>
-          ))}
-        </List>
-      </StyledDrawer>
-
-      {/* Main Content */}
-      <ContentBox>
-        {/* Tabs for Dashboard and Chat */}
-        <NavTabs
-          value={activeTab}
-          onChange={handleTabChange}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab label="Dashboard" />
-          <Tab label="Analysis Chat" />
-        </NavTabs>
-
-        {/* Dashboard Tab */}
-        <TabPanel value={activeTab} index={0}>
-          <ChartContainer>
-            <SectionHeaderContainer>
-              <Typography variant="h6" sx={{ whiteSpace: 'nowrap', fontWeight: 'bold' }}>
-                TradingView Chart
-              </Typography>
-              
-              {/* Custom Search Input with TradingView Integration */}
-              <Box component="form" onSubmit={handleSymbolSearchSubmit} sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                width: '100%', 
-                maxWidth: 400, 
-                ml: 2,
-                gap: 1,
-                position: 'relative',
-              }}>
-                <TextField
-                  id="symbol-search-input"
-                  placeholder="Search symbol (e.g. BTCUSDT, META)"
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onFocus={() => {
-                    // When input is focused, trigger TradingView's symbol search
-                    if (tradingViewRef.current && tradingViewRef.current.chart) {
-                      try {
-                        // Attempt to open TradingView's native symbol search
-                        tradingViewRef.current.chart.executeActionById("symbolSearch");
-                      } catch (e) {
-                        console.error("Error opening TradingView symbol search:", e);
-                      }
-                    }
-                  }}
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  sx={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-                    borderRadius: '4px',
-                    '& .MuiOutlinedInput-root': {
-                      color: '#fff',
-                      '& fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.1)',
-                      },
-                      '&:hover fieldset': {
-                        borderColor: 'rgba(255, 255, 255, 0.2)',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#1976d2',
-                      },
-                    },
-                  }}
-                  InputProps={{
-                    endAdornment: (
-                      <IconButton 
-                        type="submit" 
-                        size="small"
-                        sx={{ color: '#1976d2' }}
-                        aria-label="search"
-                        onClick={() => {
-                          // Click handler that also tries to open TradingView's symbol search
-                          if (tradingViewRef.current && tradingViewRef.current.chart) {
-                            try {
-                              tradingViewRef.current.chart.executeActionById("symbolSearch");
-                            } catch (e) {
-                              console.error("Error opening TradingView symbol search:", e);
-                            }
-                          }
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="11" cy="11" r="8"></circle>
-                          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                        </svg>
-                      </IconButton>
-                    ),
-                  }}
-                  inputProps={{
-                    list: "symbol-suggestions"
-                  }}
-                />
-                <datalist id="symbol-suggestions">
-                  <option value="BINANCE:BTCUSDT">Bitcoin</option>
-                  <option value="BINANCE:ETHUSDT">Ethereum</option>
-                  <option value="BINANCE:BNBUSDT">BNB</option>
-                  <option value="BINANCE:SOLUSDT">Solana</option>
-                  <option value="BINANCE:ADAUSDT">Cardano</option>
-                  <option value="BINANCE:DOGEUSDT">Dogecoin</option>
-                  <option value="BINANCE:XRPUSDT">XRP</option>
-                  <option value="NASDAQ:META">Meta Platforms</option>
-                  <option value="NASDAQ:AAPL">Apple</option>
-                  <option value="NASDAQ:MSFT">Microsoft</option>
-                </datalist>
-              </Box>
-              
-              <Box sx={{ flexGrow: 1 }} />
-              
-              <SymbolDisplayBox>
-                <Typography id="current-symbol-display" variant="body2" fontWeight="bold">
-                  {symbolRef.current}
-        </Typography>
-              </SymbolDisplayBox>
-              
-              <AnalyzeButton
-                variant="contained"
-                color="primary"
-                onClick={handleAnalyze}
-                disabled={loading}
-                size="small"
-                startIcon={loading ? <CircularProgress size={16} color="inherit" /> : null}
-              >
-                Analyze
-              </AnalyzeButton>
-            </SectionHeaderContainer>
-            
-            <Box 
-              id={chartContainerId.current} 
-              sx={{ 
-                flexGrow: 1,
-                width: '100%', 
-                position: 'relative',
-                minHeight: '300px',
-                height: 'calc(100% - 50px)',
-              }} 
-            />
-      </ChartContainer>
-        </TabPanel>
-
-        {/* Chat Tab */}
-        <TabPanel value={activeTab} index={1}>
-          <AnalysisContainer>
-            <Box sx={{ 
-              p: 2, 
-              display: 'flex', 
-              alignItems: 'center', 
+      <Box sx={{ display: 'flex', height: '100%', width: '100%' }}>
+        <AnalysisHistory 
+          history={history} 
+          selectedAnalysisId={selectedAnalysisId} 
+          onSelectAnalysis={handleSelectAnalysis} 
+        />
+        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          <Tabs 
+            value={activeTab} 
+            onChange={handleTabChange} 
+            variant="fullWidth"
+            sx={{ 
               borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              backgroundColor: 'rgba(25, 118, 210, 0.08)',
-            }}>
-              <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-                Analysis Chat - <span id="analysis-symbol-display">{symbolRef.current}</span>
-        </Typography>
-              {selectedAnalysisId && (
-                <Button
-                  onClick={() => setSelectedAnalysisId(null)}
-                  size="small"
-                  variant="outlined"
-                  color="primary"
-                  sx={{ borderRadius: '20px', textTransform: 'none' }}
-                >
-                  New Analysis
-                </Button>
-              )}
-            </Box>
-            
-        {error && (
-              <Alert severity="error" sx={{ m: 2 }}>
-            {error}
-          </Alert>
-        )}
-            
-            <MessageThread ref={messageThreadRef}>
-              {/* Regular messages */}
-          {messages.map((message) => (
-            <Message key={message.id} isUser={message.isUser}>
-                  {message.isUser ? (
-              <Typography variant="body1">{message.content}</Typography>
-                  ) : (
-                    <ReactMarkdown>{message.content}</ReactMarkdown>
-                  )}
-              {message.chartUrl && (
-                    <Box sx={{ mt: 2 }}>
-                  <img
-                    src={message.chartUrl}
-                    alt="Technical Analysis Chart"
-                        style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                  />
-                </Box>
-              )}
-            </Message>
-          ))}
-              
-              {/* Streaming content */}
-              {streamingContent && (
-                <StreamingMessage>
-                  <StatusChip 
-                    label="Live Analysis" 
-                    color="primary" 
-                    size="small"
-                    variant="outlined"
-                  />
-                  <ReactMarkdown>{streamingContent}</ReactMarkdown>
-                </StreamingMessage>
-              )}
-              
-              {/* Analyzing indicator */}
-              {loading && !streamingContent && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                  <Typography sx={{ mr: 2 }}>Analyzing {symbolRef.current}</Typography>
-                  <CircularProgress size={24} thickness={4} />
-                </Box>
-              )}
-              
-              {/* Empty state */}
-              {!loading && messages.length === 0 && !streamingContent && (
-                <Box sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  alignItems: 'center', 
-                  justifyContent: 'center', 
-                  height: '100%',
-                  opacity: 0.7
-                }}>
-                  <Typography variant="h6" sx={{ mb: 2 }}>No Analysis Selected</Typography>
-                  <Typography variant="body2" align="center">
-                    Select a symbol in the Dashboard tab and click Analyze,<br />
-                    or choose a previous analysis from the sidebar.
-                  </Typography>
-                </Box>
-              )}
-        </MessageThread>
-            
-        <InputContainer>
-          <TextField
-            fullWidth
-                id="analysis-symbol-input"
-            label="Symbol"
-                value={symbolRef.current}
-                onChange={(e) => {
-                  const newSymbol = e.target.value;
-                  console.log('Chat symbol input changed to:', newSymbol);
-                  setSymbol(newSymbol);
-                  symbolRef.current = newSymbol;
-                  
-                  // Update other display elements
-                  const symbolDisplayElements = document.querySelectorAll('[id$="symbol-display"]');
-                  symbolDisplayElements.forEach(el => {
-                    el.textContent = newSymbol;
-                  });
-                }}
-            variant="outlined"
-            size="small"
-                placeholder="Enter trading pair (e.g., BINANCE:BTCUSDT)"
-          />
-              <AnalyzeButton
-            variant="contained"
-                onClick={() => {
-                  // Ensure symbolRef is consistent with displayed symbol
-                  const displayEl = document.getElementById('analysis-symbol-display');
-                  if (displayEl && displayEl.textContent && displayEl.textContent !== symbolRef.current) {
-                    console.log('Updating symbolRef before analysis:', displayEl.textContent);
-                    symbolRef.current = displayEl.textContent;
-                    setSymbol(displayEl.textContent);
-                  }
-                  
-                  // Now perform analysis with verified symbol
-                  handleAnalyze();
-                }}
-            disabled={loading}
+              '& .MuiTab-root': {
+                fontWeight: 'bold',
+                fontSize: '1rem',
+                padding: '12px 16px'
+              },
+              '& .Mui-selected': {
+                color: '#1976d2',
+              },
+              '& .MuiTabs-indicator': {
+                backgroundColor: '#1976d2',
+                height: 3
+              }
+            }}
           >
-                {loading ? <CircularProgress size={24} color="inherit" /> : 'Analyze'}
-              </AnalyzeButton>
-        </InputContainer>
-      </AnalysisContainer>
-        </TabPanel>
-      </ContentBox>
+            <Tab label="DASHBOARD" />
+            <Tab label="ANALYSIS CHAT" />
+          </Tabs>
+          {activeTab === 0 && (
+            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
+              <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <SymbolSearch onSearchSubmit={updateSymbol} />
+                <Typography 
+                  variant="body2" 
+                  fontWeight="bold"
+                  sx={{ 
+                    backgroundColor: 'rgba(25, 118, 210, 0.12)', 
+                    padding: '4px 10px', 
+                    borderRadius: '4px',
+                    border: '1px solid rgba(25, 118, 210, 0.2)'
+                  }}
+                >
+                  {symbol}
+                </Typography>
+                <Box sx={{ marginLeft: 'auto' }}>
+                  <Button 
+                    variant="contained" 
+                    onClick={handleAnalyze} 
+                    disabled={loading}
+                    sx={{
+                      fontWeight: 'bold',
+                      textTransform: 'uppercase',
+                      minWidth: '100px',
+                      backgroundImage: 'linear-gradient(to right, #1565C0, #0D47A1)',
+                      '&:hover': {
+                        backgroundImage: 'linear-gradient(to right, #0D47A1, #0A2472)',
+                      },
+                    }}
+                  >
+                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Analyze'}
+                  </Button>
+                </Box>
+              </Box>
+              <Box sx={{ flex: 1, position: 'relative' }}>
+                <Chart symbol={symbol} onSymbolChange={updateSymbol} />
+              </Box>
+            </Box>
+          )}
+          {activeTab === 1 && (
+            <Chat 
+              messages={messages} 
+              streamingContent={streamingContent} 
+              loading={loading} 
+              error={error} 
+              symbol={symbol} 
+              onSymbolChange={updateSymbol} 
+              onAnalyze={handleAnalyze} 
+            />
+          )}
+        </Box>
+      </Box>
     </FullHeightBox>
   );
 };
