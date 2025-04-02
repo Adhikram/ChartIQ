@@ -5,58 +5,161 @@ import { AnalysisItem, StyledProps } from '../types';
 import ChatService from '../services/chatService';
 import SymbolSearch from './SymbolSearch';
 import ReactMarkdown from 'react-markdown';
+import { createGlobalStyle } from 'styled-components';
+
+// Setup global media queries for different iPhone viewports
+const GlobalStyle = createGlobalStyle`
+  /* iPhone 15 - Telegram Mini App */
+  @media (min-width: 320px) and (max-width: 340px) {
+    html {
+      font-size: 12px;
+    }
+    body {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* iPhone 12 Mini, 13 Mini - Telegram Mini App */
+  @media (min-width: 330px) and (max-width: 350px) {
+    html {
+      font-size: 13px;
+    }
+    body {
+      max-width: 330px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* iPhone 11 Pro, 14 Pro - Telegram Mini App */
+  @media (min-width: 340px) and (max-width: 375px) {
+    html {
+      font-size: 14px;
+    }
+    body {
+      max-width: 340px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* iPhone 12, 13, 14 - Telegram Mini App */
+  @media (min-width: 350px) and (max-width: 390px) {
+    html {
+      font-size: 15px;
+    }
+    body {
+      max-width: 350px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* iPhone 12 Pro Max, 14 Pro - Telegram Mini App */
+  @media (min-width: 390px) and (max-width: 430px) {
+    html {
+      font-size: 16px;
+    }
+    body {
+      max-width: 390px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* iPhone 15 Pro, 16 - Telegram Mini App */
+  @media (min-width: 400px) {
+    html {
+      font-size: 17px;
+    }
+    body {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+  }
+  
+  /* Additional global styles for Telegram Mini App */
+  body {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    overscroll-behavior: none;
+    user-select: none;
+    padding: 0;
+  }
+`;
 
 // Styled components for Telegram Mini App
 const TelegramAppContainer = styled(Box)(({ theme }: StyledProps) => ({
   padding: 0,
-  margin: 0,
+  margin: '0 auto', // Center the container
   height: '100%',
   maxHeight: '100vh',
   width: '100%',
+  maxWidth: '100%', // Full width on mobile 
   display: 'flex',
   flexDirection: 'column',
   backgroundColor: '#17212b', // Telegram dark theme color
   color: '#fff',
   overflow: 'hidden',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
+  boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)', // Add shadow for mobile app look
 }));
 
 const Header = styled(Box)(({ theme }: StyledProps) => ({
-  padding: theme.spacing(2),
+  padding: '1rem',
   backgroundColor: '#232e3c', // Slightly lighter than background
   borderBottom: '1px solid #101921',
   position: 'sticky',
   top: 0,
   zIndex: 10,
+  textAlign: 'center', // Center text in header
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
 }));
 
 const AnalysisThreadContainer = styled(Box)(({ theme }: StyledProps) => ({
   flex: 1,
   overflow: 'auto',
-  padding: theme.spacing(1),
-  height: 'calc(100vh - 116px)', // Adjust based on header height
+  padding: '0.5rem',
+  height: 'calc(100vh - 7.25rem)', // Responsive height based on rem
   display: 'flex', 
   flexDirection: 'column',
+  '&::-webkit-scrollbar': {
+    width: '0.25rem',
+  },
+  '&::-webkit-scrollbar-track': {
+    background: 'rgba(0, 0, 0, 0.1)',
+  },
+  '&::-webkit-scrollbar-thumb': {
+    background: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '0.25rem',
+  },
 }));
 
 const AnalysisItemContainer = styled(Paper)(({ theme }: StyledProps) => ({
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(1),
+  padding: '1rem',
+  marginBottom: '0.75rem',
   backgroundColor: '#232e3c',
-  borderRadius: theme.spacing(1),
+  borderRadius: '0.75rem', // More rounded corners for mobile look
   border: '1px solid rgba(255, 255, 255, 0.1)',
   cursor: 'pointer',
   transition: 'all 0.2s ease',
+  WebkitTapHighlightColor: 'rgba(0,0,0,0)', // Remove tap highlight on mobile
   '&:hover': {
     backgroundColor: '#2a3744',
     borderColor: '#5cabdd',
   },
+  '&:active': { // Add active state for touch feedback
+    backgroundColor: '#1c2733',
+    transform: 'scale(0.98)',
+  },
+  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.2)', // Add subtle shadow
 }));
 
 const StatusChip = styled(Chip)<{ status: string }>(({ theme, status }) => ({
-  height: 20,
+  height: '1.25rem',
   fontSize: '0.7rem',
   fontWeight: 'bold',
+  borderRadius: '0.75rem', // More rounded for mobile
+  padding: '0 0.5rem',
   ...(status === 'COMPLETED' && {
     backgroundColor: '#4caf50',
     color: '#fff',
@@ -187,27 +290,27 @@ const EnhancedMarkdown = styled(ReactMarkdown)(({ theme }: StyledProps) => ({
 
 // Enhanced styled components for better visual presentation
 const AnalysisContent = styled(Box)(({ theme }: StyledProps) => ({
-  marginTop: theme.spacing(1),
-  padding: theme.spacing(1.5),
+  marginTop: '0.75rem',
+  padding: '0.75rem',
   backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  borderRadius: theme.spacing(1),
+  borderRadius: '0.75rem',
   border: '1px solid rgba(255, 255, 255, 0.05)',
-  maxHeight: '300px',
+  maxHeight: '18rem',
   overflowY: 'auto',
   overflowX: 'hidden',
   fontSize: '0.9rem',
   lineHeight: '1.5',
   whiteSpace: 'pre-wrap',
   '&::-webkit-scrollbar': {
-    width: '8px',
+    width: '0.4rem',
   },
   '&::-webkit-scrollbar-track': {
     background: 'rgba(0, 0, 0, 0.1)',
-    borderRadius: '4px',
+    borderRadius: '0.2rem',
   },
   '&::-webkit-scrollbar-thumb': {
     background: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: '4px',
+    borderRadius: '0.2rem',
     '&:hover': {
       background: 'rgba(255, 255, 255, 0.3)',
     },
@@ -219,6 +322,7 @@ const SymbolHeader = styled(Typography)(({ theme }: StyledProps) => ({
   color: '#5cabdd',
   display: 'flex',
   alignItems: 'center',
+  fontSize: '0.95rem', // Slightly smaller for mobile
   '& svg': {
     marginRight: theme.spacing(1),
     color: '#5cabdd',
@@ -226,7 +330,7 @@ const SymbolHeader = styled(Typography)(({ theme }: StyledProps) => ({
 }));
 
 const DateDisplay = styled(Typography)(({ theme }: StyledProps) => ({
-  fontSize: '0.75rem',
+  fontSize: '0.7rem', // Smaller for mobile
   color: 'rgba(255, 255, 255, 0.6)',
   marginBottom: theme.spacing(1),
 }));
@@ -235,9 +339,30 @@ const LoadingContainer = styled(Box)(({ theme }: StyledProps) => ({
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
-  padding: theme.spacing(3),
+  padding: '1rem',
   backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  borderRadius: theme.spacing(1),
+  borderRadius: '1rem',
+  margin: '0.5rem',
+  boxShadow: 'inset 0 2px 4px rgba(0, 0, 0, 0.1)',
+}));
+
+// Add mobile app style floating button container
+const FloatingButtonContainer = styled(Box)(({ theme }: StyledProps) => ({
+  position: 'fixed',
+  bottom: theme.spacing(2),
+  right: theme.spacing(2),
+  zIndex: 100,
+}));
+
+// Add a custom responsive container for mobile-friendly spacing
+const ResponsiveContainer = styled(Box)(({ theme }: StyledProps) => ({
+  padding: '0.5rem',
+  '@media (min-width: 350px)': {
+    padding: '0.75rem',
+  },
+  '@media (min-width: 390px)': {
+    padding: '1rem',
+  },
 }));
 
 const TelegramTradingApp: React.FC = () => {
@@ -643,8 +768,8 @@ const TelegramTradingApp: React.FC = () => {
     if (assistantMessages.length === 0) {
       return (
         <LoadingContainer>
-          <CircularProgress size={20} sx={{ mr: 1 }} />
-          <Typography variant="body2">Analysis in progress...</Typography>
+          <CircularProgress size="1.5rem" sx={{ mr: 1, color: '#5cabdd' }} />
+          <Typography variant="body2" sx={{ fontSize: '0.9rem' }}>Analysis in progress...</Typography>
         </LoadingContainer>
       );
     }
@@ -664,87 +789,111 @@ const TelegramTradingApp: React.FC = () => {
     );
   };
 
-  return (
-    <TelegramAppContainer>
-      {/* Header with Search and Type Selector */}
-      <Header>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-          TradeAnalyst
-        </Typography>
-        
-        <Box sx={{ width: '100%' }}>
-          <SymbolSearch 
-            onSearchSubmit={(newSymbol) => {
-              console.log('Symbol search submitted with new symbol:', newSymbol);
-              // Force uppercase for better consistency
-              const formattedSymbol = newSymbol.toUpperCase();
-              // Update both state and ref
-              setSymbol(formattedSymbol);
-              symbolRef.current = formattedSymbol; // Direct update
-              // Set status message to confirm symbol change
-              setStatusMessage(`Symbol changed to ${formattedSymbol}`);
-              // Call handleAnalyze with the explicit symbol value to avoid any race conditions
-              handleAnalyze(formattedSymbol);
-            }}
-            onAnalyze={(explicitSymbol) => {
-              // If explicit symbol is provided, use it, otherwise use current ref
-              const symbolToAnalyze = explicitSymbol || symbolRef.current;
-              console.log('Manual analyze triggered for symbol:', symbolToAnalyze);
-              handleAnalyze(symbolToAnalyze);
-            }}
-          />
-        </Box>
-      </Header>
+  // Set viewport meta tag for mobile responsiveness
+  useEffect(() => {
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    if (viewportMeta) {
+      viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+  }, []);
 
-      {/* Analysis Thread Container */}
-      <AnalysisThreadContainer>
-        <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 'bold', px: 1 }}>
-          Analysis History
-        </Typography>
-      
+  return (
+    <>
+      <GlobalStyle />
+      <TelegramAppContainer>
+        {/* Header with Search and Type Selector */}
+        <Header>
+          <Typography variant="h6" sx={{ 
+            mb: 1.5, 
+            fontWeight: 'bold', 
+            textAlign: 'center',
+            fontSize: '1.25rem', // Use relative font size
+          }}>
+            TradeAnalyst
+          </Typography>
+          
+          <ResponsiveContainer sx={{ width: '100%' }}>
+            <SymbolSearch 
+              onSearchSubmit={(newSymbol) => {
+                console.log('Symbol search submitted with new symbol:', newSymbol);
+                // Force uppercase for better consistency
+                const formattedSymbol = newSymbol.toUpperCase();
+                // Update both state and ref
+                setSymbol(formattedSymbol);
+                symbolRef.current = formattedSymbol; // Direct update
+                // Set status message to confirm symbol change
+                setStatusMessage(`Symbol changed to ${formattedSymbol}`);
+                // Call handleAnalyze with the explicit symbol value to avoid any race conditions
+                handleAnalyze(formattedSymbol);
+              }}
+              onAnalyze={(explicitSymbol) => {
+                // If explicit symbol is provided, use it, otherwise use current ref
+                const symbolToAnalyze = explicitSymbol || symbolRef.current;
+                console.log('Manual analyze triggered for symbol:', symbolToAnalyze);
+                handleAnalyze(symbolToAnalyze);
+              }}
+            />
+          </ResponsiveContainer>
+        </Header>
+
+        {/* Analysis Thread Container */}
+        <AnalysisThreadContainer>
+          <Typography variant="subtitle1" sx={{ 
+            mb: 1.5, 
+            fontWeight: 'bold', 
+            textAlign: 'center',
+            fontSize: '1rem',
+            backgroundColor: 'rgba(0, 0, 0, 0.2)',
+            padding: '0.5rem',
+            borderRadius: '0.5rem',
+          }}>
+            Analysis History
+          </Typography>
         
-        {loading ? (
-          <LoadingContainer>
-            <CircularProgress size={30} />
-          </LoadingContainer>
-        ) : (
-          <Box>
-            {history.map((analysis) => (
-              <AnalysisItemContainer 
-                key={analysis.id}
-                onClick={() => handleSelectAnalysis(analysis)}
-                sx={{ 
-                  borderLeft: analysis.id === selectedAnalysisId ? '3px solid #5cabdd' : 'none',
-                  backgroundColor: analysis.id === selectedAnalysisId ? '#2a3744' : '#232e3c',
-                }}
-              >
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                  <SymbolHeader variant="subtitle2">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-                    </svg>
-                    {analysis.symbol?.toUpperCase() || 'Unknown'}
-                  </SymbolHeader>
-                  <StatusChip
-                    label={analysis.status}
-                    size="small"
-                    status={analysis.status}
-                  />
-                </Box>
-                
-                <DateDisplay variant="caption" color="text.secondary">
-                  {new Date(analysis.createdAt).toLocaleString()}
-                </DateDisplay>
-                
-                <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
-                
-                {analysis.id === selectedAnalysisId && renderAnalysisContent(analysis)}
-              </AnalysisItemContainer>
-            ))}
-          </Box>
-        )}
-      </AnalysisThreadContainer>
-    </TelegramAppContainer>
+          
+          {loading ? (
+            <LoadingContainer>
+              <CircularProgress size={30} sx={{ color: '#5cabdd' }} />
+            </LoadingContainer>
+          ) : (
+            <Box>
+              {history.map((analysis) => (
+                <AnalysisItemContainer 
+                  key={analysis.id}
+                  onClick={() => handleSelectAnalysis(analysis)}
+                  sx={{ 
+                    borderLeft: analysis.id === selectedAnalysisId ? '3px solid #5cabdd' : 'none',
+                    backgroundColor: analysis.id === selectedAnalysisId ? '#2a3744' : '#232e3c',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                    <SymbolHeader variant="subtitle2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+                      </svg>
+                      {analysis.symbol?.toUpperCase() || 'Unknown'}
+                    </SymbolHeader>
+                    <StatusChip
+                      label={analysis.status}
+                      size="small"
+                      status={analysis.status}
+                    />
+                  </Box>
+                  
+                  <DateDisplay variant="caption" color="text.secondary">
+                    {new Date(analysis.createdAt).toLocaleString()}
+                  </DateDisplay>
+                  
+                  <Divider sx={{ my: 1, borderColor: 'rgba(255, 255, 255, 0.1)' }} />
+                  
+                  {analysis.id === selectedAnalysisId && renderAnalysisContent(analysis)}
+                </AnalysisItemContainer>
+              ))}
+            </Box>
+          )}
+        </AnalysisThreadContainer>
+      </TelegramAppContainer>
+    </>
   );
 };
 
