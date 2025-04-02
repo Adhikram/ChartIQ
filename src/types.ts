@@ -31,7 +31,6 @@ export interface AnalysisItem {
     role: string;
     timestamp: string;
   }[];
-  chartUrls: string[];
 }
 
 export interface StyledProps {

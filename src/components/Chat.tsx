@@ -39,6 +39,123 @@ const Message = styled(Box, {
     : '1px solid rgba(255, 255, 255, 0.1)',
 }));
 
+// Custom components for rendering special sections and technical terms
+const formatTechnicalAnalysis = (content: string): string => {
+  // Don't attempt to format if content is empty
+  if (!content) return content;
+  
+  // Parse any timeframe headers and add special class
+  let formattedContent = content
+    // Format ## X-Hour Timeframe or ## Daily Timeframe headers
+    .replace(/## ([\w-]+) Timeframe/g, '## <span class="timeframe-header">$1 Timeframe</span>')
+    // Format ### Summary sections
+    .replace(/### Summary/g, '### <span class="summary-header">Summary</span>')
+    // Format Overall Outlook section
+    .replace(/### Overall Outlook/g, '### <span class="outlook-header">Overall Outlook</span>')
+    // Add classes to technical indicators
+    .replace(/\*\*([\w\s-]+):\*\*/g, '**<span class="technical-indicator">$1:</span>**')
+    // Enhance lists for better readability
+    .replace(/- \*\*([\w\s-]+):\*\*/g, '- **<span class="list-indicator">$1:</span>**');
+    
+  return formattedContent;
+};
+
+// Enhanced styling for markdown content
+const EnhancedMarkdown = styled(ReactMarkdown)(({ theme }) => ({
+  fontSize: '1rem',
+  lineHeight: 1.7,
+  '& h1': {
+    fontSize: '1.8rem',
+    fontWeight: 'bold',
+    marginTop: '1.5rem',
+    marginBottom: '1rem',
+    color: theme.palette.primary.main,
+    borderBottom: `1px solid ${theme.palette.primary.light}`,
+    paddingBottom: '0.5rem',
+    textAlign: 'center',
+  },
+  '& h2': {
+    fontSize: '1.5rem',
+    fontWeight: 'bold',
+    marginTop: '1.5rem',
+    marginBottom: '0.75rem',
+    color: theme.palette.primary.light,
+    borderBottom: `1px solid rgba(255, 255, 255, 0.1)`,
+    paddingBottom: '0.4rem',
+  },
+  '& h3': {
+    fontSize: '1.2rem',
+    fontWeight: 'bold',
+    marginTop: '1.2rem',
+    marginBottom: '0.5rem',
+    color: theme.palette.primary.light,
+  },
+  '& p': {
+    marginBottom: '1rem',
+  },
+  '& ul, & ol': {
+    paddingLeft: '2rem',
+    marginBottom: '1rem',
+    backgroundColor: 'rgba(0, 0, 0, 0.15)',
+    padding: '1rem 1rem 1rem 3rem',
+    borderRadius: '4px',
+    border: '1px solid rgba(255, 255, 255, 0.05)',
+  },
+  '& li': {
+    marginBottom: '0.5rem',
+  },
+  '& hr': {
+    margin: '1.5rem 0',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  '& strong': {
+    color: theme.palette.secondary.main,
+    fontWeight: 'bold',
+  },
+  '& blockquote': {
+    borderLeft: `4px solid ${theme.palette.primary.main}`,
+    paddingLeft: '1rem',
+    fontStyle: 'italic',
+    margin: '1rem 0',
+    color: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: '0.75rem',
+    borderRadius: '0 4px 4px 0',
+  },
+  '& .timeframe-header': {
+    color: '#03dac6',
+    padding: '0.2rem 0.5rem',
+    borderRadius: '4px',
+    backgroundColor: 'rgba(3, 218, 198, 0.1)',
+  },
+  '& .summary-header': {
+    color: '#bb86fc',
+    backgroundColor: 'rgba(187, 134, 252, 0.1)',
+    padding: '0.2rem 0.5rem',
+    borderRadius: '4px',
+  },
+  '& .outlook-header': {
+    color: '#ff7597',
+    backgroundColor: 'rgba(255, 117, 151, 0.1)',
+    padding: '0.2rem 0.5rem',
+    borderRadius: '4px',
+  },
+  '& .technical-indicator': {
+    color: '#64b5f6',
+  },
+  '& .list-indicator': {
+    color: '#64b5f6',
+  },
+  '& .summary-section': {
+    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+    padding: '0.75rem',
+    borderRadius: '4px',
+    border: '1px solid rgba(25, 118, 210, 0.2)',
+    marginTop: '0.5rem',
+    marginBottom: '1.5rem',
+  },
+}));
+
 const Chat: React.FC<ChatProps> = ({
   message,
   loading,
@@ -71,7 +188,7 @@ const Chat: React.FC<ChatProps> = ({
           {message.isUser ? (
             <Typography variant="body1">{message.content}</Typography>
           ) : (
-            <ReactMarkdown>{message.content}</ReactMarkdown>
+            <EnhancedMarkdown>{formatTechnicalAnalysis(message.content)}</EnhancedMarkdown>
           )}
           {message.chartUrl && (
             <Box sx={{ mt: 2 }}>
@@ -101,7 +218,7 @@ const Chat: React.FC<ChatProps> = ({
             >
               LIVE
             </Box>
-            <ReactMarkdown>{streamingContent}</ReactMarkdown>
+            <EnhancedMarkdown>{formatTechnicalAnalysis(streamingContent)}</EnhancedMarkdown>
           </Box>
         )}
         

@@ -24,7 +24,7 @@ model Analysis {
 model ChartImage {
   id          String    @id @default(cuid())
   analysisId  String
-  analysis    Analysis  @relation(fields: [analysisId], references: [id])
+  analysis    Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   interval    String
   imagePath   String
   createdAt   DateTime  @default(now())
@@ -34,7 +34,7 @@ model ChartImage {
 model Message {
   id          String    @id @default(cuid())
   analysisId  String
-  analysis    Analysis  @relation(fields: [analysisId], references: [id])
+  analysis    Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   content     String
   role        Role      @default(USER)
   createdAt   DateTime  @default(now())

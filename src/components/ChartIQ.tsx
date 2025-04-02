@@ -15,6 +15,7 @@ import SymbolSearch from './SymbolSearch';
 import AnalysisHistory from './AnalysisHistory';
 import Chat from './Chat';
 import { AnalysisItem } from '../types';
+import ReactMarkdown from 'react-markdown';
 
 // Styled components with improved sizing and spacing
 const AnalysisContainer = styled(Paper)(({ theme }: StyledProps) => ({
@@ -162,6 +163,115 @@ const AnalyzeButton = styled(Button)(({ theme }: StyledProps) => ({
   },
 }));
 
+// Enhanced message component for technical analysis display
+const AnalysisMessageContent = styled(Box)(({ theme }: StyledProps) => ({
+  fontSize: '1rem',
+  lineHeight: 1.7,
+  '& h1': {
+    fontSize: '1.7rem',
+    fontWeight: 'bold',
+    marginTop: '1.5rem',
+    marginBottom: '1rem',
+    color: '#1976d2',
+    borderBottom: '1px solid rgba(25, 118, 210, 0.3)',
+    paddingBottom: '0.5rem',
+  },
+  '& h2': {
+    fontSize: '1.4rem',
+    fontWeight: 'bold',
+    marginTop: '1.2rem',
+    marginBottom: '0.75rem',
+    color: '#1976d2',
+  },
+  '& h3': {
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    marginTop: '1rem',
+    marginBottom: '0.5rem',
+    color: '#64b5f6',
+  },
+  '& p': {
+    marginBottom: '0.8rem',
+  },
+  '& ul, & ol': {
+    paddingLeft: '1.5rem',
+    marginBottom: '1rem',
+  },
+  '& li': {
+    marginBottom: '0.4rem',
+  },
+  '& hr': {
+    margin: '1.2rem 0',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  '& strong': {
+    color: '#bb86fc',
+    fontWeight: 'bold',
+  },
+  '& em': {
+    fontStyle: 'italic',
+    color: '#03dac6',
+  },
+  '& blockquote': {
+    borderLeft: '4px solid #1976d2',
+    paddingLeft: '1rem',
+    fontStyle: 'italic',
+    margin: '1rem 0',
+    color: 'rgba(255, 255, 255, 0.7)',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: '0.75rem',
+    borderRadius: '0 4px 4px 0',
+  },
+  '& .summary-section': {
+    backgroundColor: 'rgba(25, 118, 210, 0.08)',
+    padding: '0.75rem',
+    borderRadius: '4px',
+    border: '1px solid rgba(25, 118, 210, 0.2)',
+    marginTop: '0.5rem',
+    marginBottom: '1rem',
+  },
+}));
+
+// Timeframe badge styling for chart analysis
+const TimeframeBadge = styled(Box)(({ theme }: StyledProps) => ({
+  display: 'inline-block',
+  backgroundColor: 'rgba(25, 118, 210, 0.8)',
+  color: '#fff',
+  padding: theme.spacing(0.5, 1),
+  borderRadius: theme.shape.borderRadius,
+  fontSize: '0.7rem',
+  fontWeight: 'bold',
+  margin: theme.spacing(0, 0.5, 0.5, 0),
+}));
+
+// Add a new component for displaying formatted technical analysis
+const FormattedAnalysis = ({ content }: { content: string }) => {
+  const formatContent = (content: string): string => {
+    if (!content) return '';
+    
+    // Parse any timeframe headers and add special class
+    let formattedContent = content
+      // Format ## X-Hour Timeframe or ## Daily Timeframe headers
+      .replace(/## ([\w-]+) Timeframe/g, '## <span class="timeframe-header">$1 Timeframe</span>')
+      // Format ### Summary sections
+      .replace(/### Summary/g, '### <span class="summary-header">Summary</span>')
+      // Format Overall Outlook section
+      .replace(/### Overall Outlook/g, '### <span class="outlook-header">Overall Outlook</span>')
+      // Add classes to technical indicators
+      .replace(/\*\*([\w\s-]+):\*\*/g, '**<span class="technical-indicator">$1:</span>**')
+      // Enhance lists for better readability
+      .replace(/- \*\*([\w\s-]+):\*\*/g, '- **<span class="list-indicator">$1:</span>**');
+      
+    return formattedContent;
+  };
+
+  return (
+    <AnalysisMessageContent>
+      <ReactMarkdown>{formatContent(content)}</ReactMarkdown>
+    </AnalysisMessageContent>
+  );
+};
+
 const ChartIQ: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -224,14 +334,23 @@ const ChartIQ: React.FC = () => {
       return;
     }
     
+    // Format the symbol if needed
+    let formattedSymbol = newSymbol.trim().toUpperCase();
+    if (!formattedSymbol.includes(':') && /^[A-Z0-9]+$/i.test(formattedSymbol)) {
+      formattedSymbol = `BINANCE:${formattedSymbol}`;
+      console.log('Formatted symbol to include exchange:', formattedSymbol);
+    }
+    
     // Update both state and ref to ensure consistency
-    setSymbol(newSymbol);
-    symbolRef.current = newSymbol;
+    setSymbol(formattedSymbol);
+    symbolRef.current = formattedSymbol; // Direct update
     
     // Update URL with new symbol for sharing
     const url = new URL(window.location.href);
-    url.searchParams.set('symbol', newSymbol);
+    url.searchParams.set('symbol', formattedSymbol);
     window.history.replaceState({}, '', url.toString());
+    
+    return formattedSymbol; // Return the formatted symbol
   };
 
   // Setup listener for external symbol changes (from URL or user interaction)
@@ -272,12 +391,27 @@ const ChartIQ: React.FC = () => {
     setSelectedAnalysisId(analysis.id);
     
     if (analysis.symbol && analysis.symbol !== symbolRef.current) {
-      setSymbol(analysis.symbol);
-      symbolRef.current = analysis.symbol;
+      // Format the symbol correctly if needed
+      let formattedSymbol = analysis.symbol;
+      if (!formattedSymbol.includes(':') && /^[A-Z0-9]+$/i.test(formattedSymbol)) {
+        formattedSymbol = `BINANCE:${formattedSymbol.toUpperCase()}`;
+      }
       
+      // Always ensure uppercase
+      formattedSymbol = formattedSymbol.toUpperCase();
+      
+      console.log('Updating symbol from analysis selection:', formattedSymbol);
+      
+      // Update both state and ref directly to avoid async issues
+      setSymbol(formattedSymbol);
+      symbolRef.current = formattedSymbol; // Direct update to avoid relying on useEffect
+      
+      // Update URL with selected symbol for sharing/persistence
       const url = new URL(window.location.href);
-      url.searchParams.set('symbol', analysis.symbol);
+      url.searchParams.set('symbol', formattedSymbol);
       window.history.replaceState({}, '', url.toString());
+      
+      console.log('Current symbol after selection:', symbolRef.current);
     }
     
     const formattedMessages: ChatMessage[] = analysis.messages.map(msg => ({
@@ -285,7 +419,7 @@ const ChartIQ: React.FC = () => {
       content: msg.content,
       timestamp: new Date(msg.timestamp),
       isUser: msg.role === 'USER',
-      chartUrl: msg.role === 'ASSISTANT' ? analysis.chartUrls[0] : undefined,
+      chartUrl: undefined,
       symbol: analysis.symbol,
       role: msg.role
     }));
@@ -403,7 +537,7 @@ const ChartIQ: React.FC = () => {
   }, []);
 
   // Handle analyze button click - using the current symbol
-  const handleAnalyze = async () => {
+  const handleAnalyze = async (explicitSymbol?: string) => {
     // Reset messages and selectedAnalysisId for a fresh chat session
     setMessages([]);
     setSelectedAnalysisId(null);
@@ -411,21 +545,47 @@ const ChartIQ: React.FC = () => {
     console.log('Symbol state before analysis:', {
       symbolState: symbol,
       symbolRef: symbolRef.current,
+      explicitSymbol,
       urlSymbol: new URLSearchParams(window.location.search).get('symbol')
     });
     
-    if (!symbolRef.current) {
+    // Use explicitly passed symbol first, fallback to ref, then URL
+    let currentSymbol = explicitSymbol || symbolRef.current;
+    
+    if (!currentSymbol) {
       alert('Please enter a valid trading symbol');
       return;
+    }
+    
+    // Validate symbol format
+    if (!currentSymbol.includes(':')) {
+      console.warn('Symbol format may be incorrect:', currentSymbol);
+      
+      // Try to fix the symbol format if possible
+      if (/^[A-Z0-9]+$/i.test(currentSymbol)) {
+        const fixedSymbol = `BINANCE:${currentSymbol.toUpperCase()}`;
+        console.log('Fixed symbol format:', fixedSymbol);
+        // Update both state and ref
+        setSymbol(fixedSymbol);
+        symbolRef.current = fixedSymbol; // Direct update bypasses the useEffect
+        currentSymbol = fixedSymbol;
+      }
+    }
+    
+    // Ensure symbol is uppercase for consistency
+    if (currentSymbol !== currentSymbol.toUpperCase()) {
+      const uppercasedSymbol = currentSymbol.toUpperCase();
+      console.log('Converting symbol to uppercase:', uppercasedSymbol);
+      setSymbol(uppercasedSymbol);
+      symbolRef.current = uppercasedSymbol; // Direct update bypasses the useEffect
+      currentSymbol = uppercasedSymbol;
     }
     
     // Ensure the symbolRef is up-to-date with any recent changes
     // This helps if the symbol was changed but not properly reflected in the ref
     const urlSymbol = new URLSearchParams(window.location.search).get('symbol');
-    if (urlSymbol && urlSymbol !== symbolRef.current) {
-      console.log('Updating symbolRef from URL:', urlSymbol);
-      symbolRef.current = urlSymbol;
-      setSymbol(urlSymbol);
+    if (urlSymbol && urlSymbol !== currentSymbol) {
+      console.log('URL symbol differs from current symbol:', urlSymbol, 'vs', currentSymbol);
     }
     
     // Clear existing messages if not continuing an analysis
@@ -443,8 +603,7 @@ const ChartIQ: React.FC = () => {
     }
     
     try {
-      // Get the current symbol from the ref (most up-to-date)
-      const currentSymbol = symbolRef.current;
+      // Use currentSymbol which is now properly set
       console.log('Analyzing symbol:', currentSymbol);
       
       // Step 1: Generate charts first
@@ -617,10 +776,21 @@ const ChartIQ: React.FC = () => {
       // Save the completed analysis
       console.log('Saving completed analysis');
       
-      // Final messages after streaming is complete
-      const finalMessages = [...messages];
+      // Get latest messages including the final streamed content
+      const finalMessages = [
+        ...messages.filter(msg => msg.id !== aiMessageId.toString()), // Remove the streaming placeholder
+        {
+          id: aiMessageId.toString(),
+          content: accumulatedContent,
+          timestamp: new Date(),
+          isUser: false,
+          chartUrl: chartUrls[0],
+          symbol: currentSymbol,
+          role: 'ASSISTANT'
+        }
+      ];
       
-      // Use structure matching chatService.saveAnalysis
+      // Use structure matching chatService.saveAnalysis with the corrected symbol and messages
       const saveResponse = await fetch('/api/save-analysis', {
         method: 'POST',
         headers: {
@@ -628,9 +798,16 @@ const ChartIQ: React.FC = () => {
         },
         body: JSON.stringify({
           id: analysisId,
-          symbol: currentSymbol,
+          symbol: currentSymbol, // Use the validated currentSymbol
           analysis: accumulatedContent,
-          messages: finalMessages,
+          messages: finalMessages.map(msg => ({
+            id: msg.id,
+            content: msg.content,
+            role: msg.isUser ? 'USER' : 'ASSISTANT',
+            timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
+            chartUrl: msg.chartUrl,
+            asset: msg.symbol || currentSymbol // Ensure asset is set
+          })),
           chartUrls: chartUrls,
           userId: 'user123',
           status: 'COMPLETED'
@@ -657,7 +834,23 @@ const ChartIQ: React.FC = () => {
       {/* Analysis History Panel */}
       <Box sx={{ width: '300px', display: 'flex', flexDirection: 'column', gap: 2 }}>
         <Paper sx={{ p: 2, backgroundColor: 'rgba(25, 32, 42, 0.95)' }}>
-          <SymbolSearch onSearchSubmit={updateSymbol} onAnalyze={handleAnalyze} />
+          <SymbolSearch 
+            onSearchSubmit={(newSymbol) => {
+              const formattedSymbol = updateSymbol(newSymbol);
+              // Call handleAnalyze with the explicit symbol value to avoid race conditions
+              handleAnalyze(formattedSymbol);
+            }} 
+            onAnalyze={(explicitSymbol) => {
+              // If explicit symbol is provided, update and use it
+              if (explicitSymbol) {
+                const formattedSymbol = updateSymbol(explicitSymbol);
+                handleAnalyze(formattedSymbol);
+              } else {
+                // Otherwise use current symbol
+                handleAnalyze(symbolRef.current);
+              }
+            }} 
+          />
         </Paper>
         <AnalysisHistory
           history={history.map(item => ({

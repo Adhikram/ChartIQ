@@ -93,10 +93,15 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
   };
 
   const handleSymbolSelect = (result: SymbolResult) => {
+    // Get the properly formatted symbol ID
+    const symbolId = result.id;
+    console.log('Symbol selected from search results:', symbolId);
+    
+    // Use onAnalyze if provided, otherwise fall back to onSearchSubmit
     if (onAnalyze) {
-      onAnalyze(result.id);
+      onAnalyze(symbolId);
     } else {
-      onSearchSubmit(result.id);
+      onSearchSubmit(symbolId);
     }
     setSearchInput('');
     setShowResults(false);

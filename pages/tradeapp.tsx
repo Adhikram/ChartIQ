@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import TelegramTradingApp from './components/TelegramTradingApp';
+import TelegramTradingApp from '../src/components/TelegramTradingApp';
 
 // Dark theme configuration for Telegram-like appearance
 const darkTheme = createTheme({
@@ -47,14 +47,11 @@ const darkTheme = createTheme({
   },
 });
 
-// We've moved the routing to Next.js pages
-function App() {
+export default function TradeAppPage() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
       <TelegramTradingApp />
     </ThemeProvider>
   );
-}
-
-export default App; 
+} 

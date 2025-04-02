@@ -1,0 +1,92 @@
+/* Base reset for Telegram Mini App */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen,
+    Ubuntu, Cantarell, 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  background-color: #17212b; /* Telegram dark theme */
+  color: white;
+  height: 100vh;
+  width: 100vw;
+  touch-action: manipulation; /* Better mobile experience */
+}
+
+html, #root {
+  height: 100%;
+  width: 100%;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Telegram Mini App specific styles */
+:root {
+  --tg-theme-bg-color: #17212b;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-hint-color: rgba(255, 255, 255, 0.5);
+  --tg-theme-link-color: #5cabdd;
+  --tg-theme-button-color: #5cabdd;
+  --tg-theme-button-text-color: #ffffff;
+  --tg-theme-secondary-bg-color: #232e3c;
+}
+
+/* Optimize for mobile and small screens */
+@media (max-width: 768px) {
+  .MuiFormControl-root, .MuiTextField-root {
+    font-size: 14px !important;
+  }
+  
+  h6.MuiTypography-root {
+    font-size: 16px !important;
+  }
+  
+  .MuiChip-root {
+    height: 20px !important;
+    font-size: 10px !important;
+  }
+  
+  .MuiListItemText-primary {
+    font-size: 14px !important;
+  }
+  
+  .MuiListItemText-secondary {
+    font-size: 12px !important;
+  }
+}
+
+/* For Telegram mini-app web view */
+.telegram-app {
+  max-width: 100vw;
+  overflow-x: hidden;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+} 
