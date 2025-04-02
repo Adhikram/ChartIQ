@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
+import { getChartAnalysisPrompt } from '../../prompts/chart-analysis';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -36,15 +37,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     );
 
+    const model = process.env.OPENAI_MODEL_NAME || "gpt-4o";
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model,
       messages: [
         {
           role: "user",
           content: [
             { 
               type: "text" as const,
-              text: `Please analyze these charts for ${symbol || 'the asset'} and provide technical analysis. The charts are in 1h, 4h, and 1d timeframes. Format your response in markdown.`
+              text: getChartAnalysisPrompt(symbol)
             },
             ...imageContents.map(base64Image => ({
               type: "image_url" as const,
