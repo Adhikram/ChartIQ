@@ -1,4 +1,4 @@
-  import axios from 'axios';
+import axios from 'axios';
 import { ChatMessage, ChatHistory, ChatResponse as ChatResponseType, AnalysisHistoryResponse } from '../types';
 
 class ChatService {
@@ -32,8 +32,8 @@ class ChatService {
           asset: analysis.symbol,
           chartUrl: analysis.chartUrls[0]
         })),
-        createdAt: new Date(analysis.createdAt),
-        updatedAt: new Date(analysis.createdAt)
+        createdAt: new Date(analysis.createdAt).toISOString(),
+        updatedAt: new Date(analysis.createdAt).toISOString()
       }));
     } catch (error) {
       console.error('Error loading chat history:', error);
