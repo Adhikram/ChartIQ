@@ -4,6 +4,7 @@ import axios from 'axios';
 
 interface SymbolSearchProps {
   onSearchSubmit: (symbol: string) => void;
+  onAnalyze?: (symbol: string) => void;
 }
 
 interface SymbolResult {
@@ -31,7 +32,7 @@ const assetTypes = [
   { value: 'economic', label: 'Economic' },
 ];
 
-const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit }) => {
+const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }) => {
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<SymbolResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -92,7 +93,11 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit }) => {
   };
 
   const handleSymbolSelect = (result: SymbolResult) => {
-    onSearchSubmit(result.id);
+    if (onAnalyze) {
+      onAnalyze(result.id);
+    } else {
+      onSearchSubmit(result.id);
+    }
     setSearchInput('');
     setShowResults(false);
   };

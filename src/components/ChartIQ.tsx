@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Box, 
   Paper, 
@@ -6,38 +6,17 @@ import {
   CircularProgress, 
   Alert, 
   TextField, 
-  Button, 
-  IconButton, 
-  Collapse, 
-  Drawer, 
-  List, 
-  ListItem, 
-  Chip,
-  Tabs,
-  Tab
+  Button
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import ChatService from '../services/chatService';
-import { ChatMessage, StyledProps, TradingViewWidget, AnalysisItem } from '../types';
-import ReactMarkdown from 'react-markdown';
-import Chart from './Chart';
+import { ChatMessage, StyledProps } from '../types';
 import SymbolSearch from './SymbolSearch';
 import AnalysisHistory from './AnalysisHistory';
 import Chat from './Chat';
+import { AnalysisItem } from '../types';
 
 // Styled components with improved sizing and spacing
-const ChartContainer = styled(Paper)(({ theme }: StyledProps) => ({
-  padding: 0,
-  margin: 0,
-  height: '100%',
-  display: 'flex',
-  flexDirection: 'column',
-  borderRadius: 4,
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
-  overflow: 'hidden',
-}));
-
 const AnalysisContainer = styled(Paper)(({ theme }: StyledProps) => ({
   padding: 0,
   margin: 0,
@@ -95,27 +74,6 @@ const MainArea = styled(Box)({
   overflow: 'hidden',
 });
 
-// StyledDrawer component with matching styling
-const StyledDrawer = styled(Drawer)(({ theme }: StyledProps) => ({
-  width: 250,
-  flexShrink: 0,
-  '& .MuiDrawer-paper': {
-    width: 250,
-    boxSizing: 'border-box',
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    borderRight: `1px solid rgba(255, 255, 255, 0.1)`,
-    boxShadow: theme.shadows[5],
-  },
-}));
-
-const HistoryListItem = styled(ListItem)(({ theme }: StyledProps) => ({
-  borderRadius: theme.shape.borderRadius,
-  margin: theme.spacing(0.5, 1),
-  '&:hover': {
-    backgroundColor: theme.palette.action.hover,
-  },
-}));
-
 // Improved stream message
 const StreamingMessage = styled(Box)(({ theme }: StyledProps) => ({
   padding: theme.spacing(3),
@@ -162,19 +120,7 @@ const StatusBadge = styled(Box)<{ status: string }>(({ theme, status }) => ({
   }),
 }));
 
-const StatusChip = styled(Chip)(({ theme, color }: any) => ({
-  position: 'absolute',
-  top: theme.spacing(1),
-  right: theme.spacing(1),
-  ...(color === 'success' && {
-    backgroundColor: 'rgba(46, 125, 50, 0.9)',
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: '0.7rem',
-  }),
-}));
-
-// Modify FullHeightBox to use full viewport
+// Full height container
 const FullHeightBox = styled(Box)({
   display: 'flex',
   height: '100vh',
@@ -190,7 +136,7 @@ const ContentBox = styled(Box)({
   overflow: 'hidden',
 });
 
-// Make the section header more polished
+// Section header styling
 const SectionHeaderContainer = styled(Box)(({ theme }: StyledProps) => ({
   display: 'flex',
   justifyContent: 'flex-start',
@@ -202,95 +148,6 @@ const SectionHeaderContainer = styled(Box)(({ theme }: StyledProps) => ({
   fontSize: '1rem',
   gap: theme.spacing(2),
 }));
-
-// Enhanced tabs
-const NavTabs = styled(Tabs)(({ theme }: StyledProps) => ({
-  '& .MuiTabs-flexContainer': {
-    justifyContent: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.1)',
-  },
-  '& .MuiTab-root': {
-    textTransform: 'uppercase',
-    minWidth: 100,
-    fontWeight: 'bold',
-    minHeight: 48,
-    padding: '6px 16px',
-    transition: 'all 0.2s ease',
-  },
-  '& .Mui-selected': {
-    color: '#1976d2',
-    backgroundColor: 'rgba(25, 118, 210, 0.08)',
-  },
-  '& .MuiTabs-indicator': {
-    backgroundColor: '#1976d2',
-    height: 3,
-  },
-}));
-
-// Update SymbolDisplayBox styling
-const SymbolDisplayBox = styled(Box)(({ theme }: StyledProps) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(0.5),
-  marginLeft: 'auto',
-  marginRight: theme.spacing(2),
-  backgroundColor: 'rgba(25, 118, 210, 0.12)',
-  padding: theme.spacing(0.5, 1.5),
-  borderRadius: theme.shape.borderRadius,
-  border: '1px solid rgba(25, 118, 210, 0.2)',
-}));
-
-// More minimal input container
-const InputContainer = styled(Box)(({ theme }: StyledProps) => ({
-  display: 'flex',
-  gap: theme.spacing(1.5),
-  padding: theme.spacing(1.5),
-  marginTop: 'auto',
-  backgroundColor: 'transparent', // Remove dark background
-  borderRadius: 0,
-  borderTop: `1px solid ${theme.palette.divider}`, // Simple divider
-}));
-
-// Update the TabPanel to use percentage-based height
-interface TabPanelProps {
-  children?: React.ReactNode;
-  index: number;
-  value: number;
-}
-
-function TabPanel(props: TabPanelProps) {
-  const { children, value, index, ...other } = props;
-
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`tabpanel-${index}`}
-      aria-labelledby={`tab-${index}`}
-      style={{ height: 'calc(100% - 48px)', padding: 0, overflow: 'hidden' }}
-      {...other}
-    >
-      {value === index && <Box sx={{ height: '100%', width: '100%', overflow: 'hidden' }}>{children}</Box>}
-    </div>
-  );
-}
-
-// Add TradingView MediumWidget interface
-interface TradingViewSymbolData {
-  name: string;
-  pro_name?: string;
-  exchange?: string;
-  [key: string]: any;
-}
-
-// Handle messages from TradingView
-interface TradingViewSymbolMessage {
-  name?: string;
-  type?: string;
-  method?: string;
-  symbol?: string;
-  params?: string[];
-}
 
 // More polished button
 const AnalyzeButton = styled(Button)(({ theme }: StyledProps) => ({
@@ -305,39 +162,19 @@ const AnalyzeButton = styled(Button)(({ theme }: StyledProps) => ({
   },
 }));
 
-// Add a custom symbol search component for TradingView
-const TradingViewSymbolSearch = styled(Box)(({ theme }: StyledProps) => ({
-  padding: theme.spacing(1),
-  borderRadius: theme.shape.borderRadius,
-  display: 'flex',
-  alignItems: 'center',
-  gap: theme.spacing(1),
-  backgroundColor: 'rgba(255, 255, 255, 0.05)',
-  border: '1px solid rgba(255, 255, 255, 0.1)',
-  width: '100%',
-  maxWidth: '400px',
-}));
-
 const ChartIQ: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [symbol, setSymbol] = useState<string>('BINANCE:BTCUSDT');
-  const [showChart, setShowChart] = useState(true); // Default to showing chart
   const [history, setHistory] = useState<AnalysisItem[]>([]);
   const [streamingContent, setStreamingContent] = useState('');
   const [selectedAnalysisId, setSelectedAnalysisId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState(0); // 0 for Dashboard, 1 for Chat
-  const tradingViewRef = useRef<any>(null);
-  const chartContainerId = useRef<string>(`tradingview-widget-${Math.random().toString(36).substring(2, 9)}`);
-  const symbolSearchContainerId = useRef<string>(`symbol-search-${Math.random().toString(36).substring(2, 9)}`);
+  const [input, setInput] = useState('');
   const symbolRef = useRef<string>('BINANCE:BTCUSDT');
   const chatService = useRef(ChatService.getInstance());
   const messageThreadRef = useRef<HTMLDivElement>(null);
-  const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isDarkMode = false; // Default theme
-  const [searchInput, setSearchInput] = useState<string>('');
 
   // Update the ref when symbol changes
   useEffect(() => {
@@ -356,16 +193,16 @@ const ChartIQ: React.FC = () => {
             id: item.id,
             symbol: item.messages[0]?.asset || 'Unknown',
             status: 'COMPLETED',
-            createdAt: item.createdAt.toISOString(),
-            messages: item.messages.map(msg => ({
+            createdAt: item.createdAt,
+            messages: item.messages.map((msg: ChatMessage) => ({
               id: msg.id,
               content: msg.content,
               role: msg.isUser ? 'USER' : 'ASSISTANT',
-              timestamp: msg.timestamp.toISOString(),
+              timestamp: msg.timestamp instanceof Date ? msg.timestamp.toISOString() : msg.timestamp,
             })),
             chartUrls: item.messages
-              .filter(msg => msg.chartUrl)
-              .map(msg => msg.chartUrl as string),
+              .filter((msg: ChatMessage) => msg.chartUrl)
+              .map((msg: ChatMessage) => msg.chartUrl as string),
           }));
           setHistory(formattedHistory);
         }
@@ -395,70 +232,7 @@ const ChartIQ: React.FC = () => {
     const url = new URL(window.location.href);
     url.searchParams.set('symbol', newSymbol);
     window.history.replaceState({}, '', url.toString());
-    
-    // Update any DOM elements directly if needed
-    const symbolDisplayElements = document.querySelectorAll('[id$="symbol-display"]');
-    symbolDisplayElements.forEach(el => {
-      el.textContent = newSymbol;
-    });
-    
-    // Force symbol update if we have a TradingView instance
-    if (tradingViewRef.current && tradingViewRef.current.activeChart && tradingViewRef.current.activeChart.setSymbol) {
-      try {
-        tradingViewRef.current.activeChart.setSymbol(newSymbol);
-      } catch (e) {
-        console.error('Error updating TradingView symbol:', e);
-      }
-    }
-    
-    console.log('Symbol update complete:', {
-      symbolState: newSymbol, 
-      symbolRef: symbolRef.current, 
-      displayElements: symbolDisplayElements.length
-    });
   };
-
-  // Listen for TradingView symbol changes (including from symbol search)
-  useEffect(() => {
-    const handleTradingViewMessage = (event: MessageEvent) => {
-      // TradingView sends messages in various formats when symbols change
-      if (event.data && typeof event.data === 'object') {
-        // Handle symbol-change message format
-        if (
-          (event.data.name === 'tv-widget-symbol-changed' && event.data.symbol) ||
-          (event.data.type === 'symbol-change' && event.data.symbol) ||
-          (event.data.method === 'symbolChange' && event.data.params?.[0])
-        ) {
-          const newSymbol = event.data.symbol || event.data.params?.[0];
-          if (newSymbol && newSymbol !== symbolRef.current) {
-            console.log('Symbol changed detected from TradingView:', newSymbol);
-            
-            // Update state and ref
-            setSymbol(newSymbol);
-            symbolRef.current = newSymbol;
-            
-            // Update URL for sharing
-            const url = new URL(window.location.href);
-            url.searchParams.set('symbol', newSymbol);
-            window.history.replaceState({}, '', url.toString());
-            
-            // Update any DOM elements directly if needed
-            const symbolDisplayElements = document.querySelectorAll('[id$="symbol-display"]');
-            symbolDisplayElements.forEach(el => {
-              el.textContent = newSymbol;
-            });
-          }
-        }
-      }
-    };
-    
-    // Add global event listener
-    window.addEventListener('message', handleTradingViewMessage);
-    
-    return () => {
-      window.removeEventListener('message', handleTradingViewMessage);
-    };
-  }, []);
 
   // Setup listener for external symbol changes (from URL or user interaction)
   useEffect(() => {
@@ -470,12 +244,6 @@ const ChartIQ: React.FC = () => {
         console.log('URL symbol change detected:', urlSymbol);
         setSymbol(urlSymbol);
         symbolRef.current = urlSymbol;
-        
-        // Update all display elements
-        const symbolDisplayElements = document.querySelectorAll('[id$="symbol-display"]');
-        symbolDisplayElements.forEach(el => {
-          el.textContent = urlSymbol;
-        });
       }
     };
     
@@ -485,295 +253,14 @@ const ChartIQ: React.FC = () => {
     // Listen to URL changes (popstate event)
     const handlePopState = () => {
       checkUrlForSymbol();
-      if (activeTab === 0) {
-        initializeChart();
-      }
     };
     window.addEventListener('popstate', handlePopState);
     
-    // Setup global handler for TradingView messages
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data && typeof event.data === 'object') {
-        // Log all TradingView messages for debugging
-        if (event.data.name?.includes('tv-') || 
-            event.data.type?.includes('symbol') || 
-            event.data.method?.includes('symbol')) {
-          console.log('TradingView message:', event.data);
-        }
-        
-        // Handle various TradingView message formats
-        if (event.data.name === 'tv-widget-symbol-changed' ||
-            event.data.type === 'symbol-change' || 
-            (event.data.method && event.data.method === 'symbolChange')) {
-          const newSymbol = event.data.symbol || event.data.params?.[0];
-          if (newSymbol && newSymbol !== symbolRef.current) {
-            console.log('External symbol change detected from TradingView message:', newSymbol);
-            updateSymbol(newSymbol);
-          }
-        }
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    
     return () => {
       window.removeEventListener('popstate', handlePopState);
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [activeTab]);
-
-  // Listen for direct symbol search input changes and TradingView symbol changes
-  useEffect(() => {
-    // Add event listener for TradingView symbol search selection
-    const handleSymbolSelect = (event: MessageEvent) => {
-      try {
-        // Check for symbol search widget's selection events
-        if (
-          event.data && 
-          typeof event.data === 'object' &&
-          (event.data.name === 'symbolSelect' || 
-           event.data.type === 'symbol-select' ||
-           (event.data.id && event.data.id.includes('symbol-search')))
-        ) {
-          const newSymbol = event.data.symbol || event.data.value;
-          if (newSymbol && newSymbol !== symbolRef.current) {
-            console.log('Symbol selected from search widget:', newSymbol);
-            updateSymbol(newSymbol);
-          }
-        }
-      } catch (error) {
-        console.error('Error handling symbol select:', error);
-      }
-    };
-    
-    // Add global event listener
-    window.addEventListener('message', handleSymbolSelect);
-    
-    return () => {
-      window.removeEventListener('message', handleSymbolSelect);
     };
   }, []);
 
-  // Update the Analyze button symbol input in the Analysis Chat tab
-  useEffect(() => {
-    const chatSymbolInput = document.querySelector('.MuiInputBase-input[value]');
-    if (chatSymbolInput) {
-      try {
-        // @ts-ignore: Setting the value property directly
-        chatSymbolInput.value = symbolRef.current;
-      } catch (e) {
-        console.error('Error updating symbol input:', e);
-      }
-    }
-  }, [activeTab, symbol]);
-
-  // Function to handle manual symbol search submit
-  const handleSymbolSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchInput && searchInput.trim() !== '') {
-      // Format symbol if needed (e.g., add BINANCE: prefix if missing for crypto)
-      let formattedSymbol = searchInput.trim();
-      
-      // Add exchange prefix if missing
-      if (!formattedSymbol.includes(':') && 
-          /^[A-Z0-9]+$/i.test(formattedSymbol)) {
-        formattedSymbol = `BINANCE:${formattedSymbol.toUpperCase()}`;
-      }
-      
-      console.log('Symbol search submitted:', formattedSymbol);
-      
-      // Update symbol in our app state and in TradingView
-      updateSymbol(formattedSymbol);
-      
-      // Try to update TradingView chart directly
-      if (tradingViewRef.current) {
-        try {
-          // If TradingView widget has setSymbol method
-          if (typeof tradingViewRef.current.setSymbol === 'function') {
-            tradingViewRef.current.setSymbol(formattedSymbol);
-          }
-          // If we can access chart object directly
-          else if (tradingViewRef.current.chart && 
-                  typeof tradingViewRef.current.chart.setSymbol === 'function') {
-            tradingViewRef.current.chart.setSymbol(formattedSymbol);
-          }
-          // Last resort: reinitialize
-          else {
-            initializeChart();
-          }
-        } catch (e) {
-          console.error('Error updating TradingView symbol:', e);
-          // If direct update fails, reinitialize chart
-          initializeChart();
-        }
-      }
-    }
-  };
-
-  // Function to initialize/reinitialize the TradingView chart
-  const initializeChart = () => {
-    // Clear any existing chart
-    const container = document.getElementById(chartContainerId.current);
-    if (container) {
-      while (container.firstChild) {
-        container.removeChild(container.firstChild);
-      }
-    }
-    
-    // Log current symbol state before initializing
-    console.log('Initializing chart with symbol:', {
-      symbolState: symbol,
-      symbolRef: symbolRef.current, 
-      urlSymbol: new URLSearchParams(window.location.search).get('symbol')
-    });
-    
-    // Load the TradingView script
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/tv.js';
-    script.async = true;
-    script.onload = () => {
-      if (typeof window.TradingView !== 'undefined') {
-        // Get the current symbol (from ref to ensure it's up to date)
-        const currentSymbol = symbolRef.current;
-        
-        // Initialize main chart with Symbol Search enabled
-        tradingViewRef.current = new window.TradingView.widget({
-          container_id: chartContainerId.current,
-          symbol: currentSymbol,
-          interval: '1D',
-          theme: 'dark',
-          style: '1',
-          locale: 'en',
-          toolbar_bg: 'rgba(0, 0, 0, 0)', // Transparent toolbar background
-          enable_publishing: false,
-          allow_symbol_change: true, // Allow symbol changes
-          save_image: true,
-          height: '100%', // Use 100% height
-          width: '100%',
-          hideideas: true,
-          studies: [
-            'RSI@tv-basicstudies',
-            'MACD@tv-basicstudies',
-            'BB@tv-basicstudies',
-          ],
-          autosize: true, // Enable autosize
-          fullscreen: false,
-          hide_side_toolbar: false,
-          withdateranges: true, // Show date range selector
-          hide_volume: false,
-          details: true,
-          hotlist: true,
-          calendar: true,
-          // Enable symbol search capabilities
-          show_popup_button: true, 
-          popup_width: '1000',
-          popup_height: '650',
-          // Add the official symbol change callback
-          symbol_change_callback: (symbolData: TradingViewSymbolData) => {
-            console.log("TradingView symbol_change_callback:", symbolData.name);
-            // Update our custom input when TradingView changes symbol
-            setSearchInput(symbolData.name);
-            updateSymbol(symbolData.name);
-          }
-        });
-        
-        // Add resize listener to handle window resizing
-        const handleResize = () => {
-          if (tradingViewRef.current && 'resize' in tradingViewRef.current) {
-            try {
-              tradingViewRef.current.resize();
-            } catch (e) {
-              console.error('Error resizing chart:', e);
-            }
-          }
-        };
-        
-        window.addEventListener('resize', handleResize);
-        
-        // Update the UI with the current symbol
-        updateSymbol(currentSymbol);
-        
-        // Return cleanup function that removes resize listener
-        return () => {
-          window.removeEventListener('resize', handleResize);
-          if (script.parentNode) {
-            script.parentNode.removeChild(script);
-          }
-        };
-      }
-    };
-    document.head.appendChild(script);
-  };
-
-  // Function to initialize the TradingView symbol search widget
-  const initializeSymbolSearch = () => {
-    // Clear any existing container contents
-    const container = document.getElementById('tradingview-widget-search-container');
-    if (container) {
-      container.innerHTML = '';
-      
-      // Create widget container
-      const widgetContainer = document.createElement('div');
-      widgetContainer.className = 'tradingview-widget-container';
-      
-      // Set up the symbol search widget
-      const script = document.createElement('script');
-      script.id = 'tradingview-widget-search-script';
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-symbol-search.js';
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        "width": "100%",
-        "height": "38",
-        "symbolsGroups": [
-          {
-            "name": "Cryptocurrencies",
-            "originalName": "Cryptocurrencies",
-            "symbols": [
-              { "name": "BINANCE:BTCUSDT", "displayName": "Bitcoin" },
-              { "name": "BINANCE:ETHUSDT", "displayName": "Ethereum" },
-              { "name": "BINANCE:BNBUSDT", "displayName": "BNB" },
-              { "name": "BINANCE:SOLUSDT", "displayName": "Solana" },
-              { "name": "BINANCE:ADAUSDT", "displayName": "Cardano" }
-            ]
-          }
-        ],
-        "colorTheme": "dark",
-        "isTransparent": true,
-        "locale": "en"
-      });
-      
-      widgetContainer.appendChild(script);
-      container.appendChild(widgetContainer);
-    }
-  };
-
-  // Initialize chart when component mounts
-  useEffect(() => {
-    if (showChart) {
-      // Check URL for symbol parameter first and update if needed
-      const urlParams = new URLSearchParams(window.location.search);
-      const urlSymbol = urlParams.get('symbol');
-      if (urlSymbol && urlSymbol !== symbolRef.current) {
-        console.log('Setting initial symbol from URL:', urlSymbol);
-        setSymbol(urlSymbol);
-        symbolRef.current = urlSymbol;
-      } else if (!symbolRef.current) {
-        // Default to Bitcoin if no symbol is set
-        console.log('No symbol found, defaulting to Bitcoin');
-        setSymbol('BINANCE:BTCUSDT');
-        symbolRef.current = 'BINANCE:BTCUSDT';
-      }
-      
-      initializeChart();
-    }
-  }, [showChart]);
-  
-  // Reinitialize chart when tab changes to Dashboard
-  useEffect(() => {
-    if (activeTab === 0) { // Dashboard tab
-      initializeChart();
-    }
-  }, [activeTab]);
-  
   // Scroll messages into view when updated
   useEffect(() => {
     if (messageThreadRef.current) {
@@ -784,35 +271,65 @@ const ChartIQ: React.FC = () => {
   const handleSelectAnalysis = (analysis: AnalysisItem) => {
     setSelectedAnalysisId(analysis.id);
     
-    // Update symbol from the selected analysis
     if (analysis.symbol && analysis.symbol !== symbolRef.current) {
       setSymbol(analysis.symbol);
       symbolRef.current = analysis.symbol;
       
-      // Update URL with the symbol
       const url = new URL(window.location.href);
       url.searchParams.set('symbol', analysis.symbol);
       window.history.replaceState({}, '', url.toString());
-      
-      // If we're on the dashboard tab, reinitialize the chart with the new symbol
-      if (activeTab === 0) {
-        initializeChart();
-      }
     }
     
-    setActiveTab(1); // Switch to Chat tab
-    
-    // Format messages from the analysis
     const formattedMessages: ChatMessage[] = analysis.messages.map(msg => ({
       id: msg.id,
       content: msg.content,
       timestamp: new Date(msg.timestamp),
       isUser: msg.role === 'USER',
       chartUrl: msg.role === 'ASSISTANT' ? analysis.chartUrls[0] : undefined,
+      symbol: analysis.symbol,
+      role: msg.role
     }));
     
     setMessages(formattedMessages);
-    setStreamingContent(''); // Clear any streaming content
+    setStreamingContent('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      content: input,
+      timestamp: new Date(),
+      isUser: true,
+      symbol: symbol,
+      role: 'USER'
+    };
+
+    setMessages(prevMessages => [...prevMessages, userMessage]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await chatService.current.sendMessage(input, symbol);
+      
+      const assistantMessage: ChatMessage = {
+        id: Date.now().toString(),
+        content: response.content,
+        timestamp: new Date(),
+        isUser: false,
+        chartUrl: response.chartUrl,
+        symbol: symbol,
+        role: 'ASSISTANT'
+      };
+
+      setMessages(prevMessages => [...prevMessages, assistantMessage]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Function to load analysis history
@@ -911,22 +428,13 @@ const ChartIQ: React.FC = () => {
       setSymbol(urlSymbol);
     }
     
-    // Double-check the current symbol display to make sure it's in sync
-    const displayElement = document.getElementById('current-symbol-display');
-    if (displayElement && displayElement.textContent && 
-        displayElement.textContent !== symbolRef.current) {
-      console.log('Updating symbolRef from display:', displayElement.textContent);
-      symbolRef.current = displayElement.textContent;
-      setSymbol(displayElement.textContent);
-    }
-    
     // Clear existing messages if not continuing an analysis
-    if (!selectedAnalysisId) {
+    if (selectedAnalysisId === null) {
       setStreamingContent('');
     }
     
     setLoading(true);
-    setActiveTab(1); // Switch to Analysis Chat tab
+    setSelectedAnalysisId(null);
     
     // Clear any existing intervals
     if (statusIntervalRef.current) {
@@ -1144,121 +652,86 @@ const ChartIQ: React.FC = () => {
     }
   };
 
-  const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
-  };
-
-  // Convert status to display text
-  const getStatusDisplay = (status: string): string => {
-    switch (status) {
-      case 'COMPLETED': return 'DONE';
-      default: return status;
-    }
-  };
-
-  // Update TradingView container reference 
-  const setChartContainerRef = (el: HTMLDivElement) => {
-    chartContainerRef.current = el;
-  };
-
-  // Update all symbol display elements when symbol changes
-  useEffect(() => {
-    // Update all elements with IDs ending in "symbol-display"
-    const symbolDisplayElements = document.querySelectorAll('[id$="symbol-display"]');
-    symbolDisplayElements.forEach(el => {
-      el.textContent = symbolRef.current;
-    });
-    
-    // Log the change
-    console.log('Symbol display elements updated to:', symbolRef.current);
-  }, [symbol]); // Depends on symbol state
-
   return (
-    <FullHeightBox>
-      <Box sx={{ display: 'flex', height: '100%', width: '100%' }}>
-        <AnalysisHistory 
-          history={history} 
-          selectedAnalysisId={selectedAnalysisId} 
-          onSelectAnalysis={handleSelectAnalysis} 
+    <Box sx={{ height: '100%', display: 'flex', gap: 2 }}>
+      {/* Analysis History Panel */}
+      <Box sx={{ width: '300px', display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Paper sx={{ p: 2, backgroundColor: 'rgba(25, 32, 42, 0.95)' }}>
+          <SymbolSearch onSearchSubmit={updateSymbol} onAnalyze={handleAnalyze} />
+        </Paper>
+        <AnalysisHistory
+          history={history.map(item => ({
+            ...item,
+            messages: item.messages.map(msg => ({
+              ...msg,
+              isUser: msg.role === 'USER'
+            }))
+          }))}
+          selectedAnalysisId={selectedAnalysisId}
+          onSelect={handleSelectAnalysis}
+          sx={{ flex: 1 }}
         />
-        <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-          <Tabs 
-            value={activeTab} 
-            onChange={handleTabChange} 
-            variant="fullWidth"
-            sx={{ 
-              borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-              '& .MuiTab-root': {
-                fontWeight: 'bold',
-                fontSize: '1rem',
-                padding: '12px 16px'
-              },
-              '& .Mui-selected': {
-                color: '#1976d2',
-              },
-              '& .MuiTabs-indicator': {
-                backgroundColor: '#1976d2',
-                height: 3
-              }
-            }}
-          >
-            <Tab label="DASHBOARD" />
-            <Tab label="ANALYSIS CHAT" />
-          </Tabs>
-          {activeTab === 0 && (
-            <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', height: 'calc(100% - 48px)' }}>
-              <Box sx={{ p: 1.5, display: 'flex', alignItems: 'center', gap: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                <SymbolSearch onSearchSubmit={updateSymbol} />
-                <Typography 
-                  variant="body2" 
-                  fontWeight="bold"
-                  sx={{ 
-                    backgroundColor: 'rgba(25, 118, 210, 0.12)', 
-                    padding: '4px 10px', 
-                    borderRadius: '4px',
-                    border: '1px solid rgba(25, 118, 210, 0.2)'
+      </Box>
+
+      {/* Main Content Area - Now only contains Analysis Chat */}
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        {/* Chat Container */}
+        <AnalysisContainer>
+          <Box sx={{ p: 2, borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <Typography variant="h6" color="primary">Analysis Chat</Typography>
+          </Box>
+          <MessageThread ref={messageThreadRef}>
+            {messages.map((message, index) => (
+              <Chat
+                key={message.id || index}
+                message={message}
+                loading={loading}
+                error={error}
+                streamingContent={streamingContent}
+                isLastMessage={index === messages.length - 1}
+              />
+            ))}
+          </MessageThread>
+          {/* Chat Input */}
+          <Box sx={{ p: 2, borderTop: '1px solid rgba(255, 255, 255, 0.1)' }}>
+            <form onSubmit={handleSubmit}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  multiline
+                  maxRows={4}
+                  placeholder="Ask about the chart analysis..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  disabled={loading}
+                  sx={{
+                    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+                    '& .MuiOutlinedInput-root': {
+                      color: '#fff',
+                    },
+                  }}
+                />
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={loading || !input.trim()}
+                  sx={{
+                    minWidth: '100px',
+                    alignSelf: 'flex-end',
+                    backgroundImage: 'linear-gradient(to right, #1565C0, #0D47A1)',
+                    '&:hover': {
+                      backgroundImage: 'linear-gradient(to right, #0D47A1, #0A2472)',
+                    },
                   }}
                 >
-                  {symbol}
-                </Typography>
-                <Box sx={{ marginLeft: 'auto' }}>
-                  <Button 
-                    variant="contained" 
-                    onClick={handleAnalyze} 
-                    disabled={loading}
-                    sx={{
-                      fontWeight: 'bold',
-                      textTransform: 'uppercase',
-                      minWidth: '100px',
-                      backgroundImage: 'linear-gradient(to right, #1565C0, #0D47A1)',
-                      '&:hover': {
-                        backgroundImage: 'linear-gradient(to right, #0D47A1, #0A2472)',
-                      },
-                    }}
-                  >
-                    {loading ? <CircularProgress size={24} color="inherit" /> : 'Analyze'}
-                  </Button>
-                </Box>
+                  {loading ? <CircularProgress size={24} color="inherit" /> : 'Send'}
+                </Button>
               </Box>
-              <Box sx={{ flex: 1, position: 'relative' }}>
-                <Chart symbol={symbol} onSymbolChange={updateSymbol} />
-              </Box>
-            </Box>
-          )}
-          {activeTab === 1 && (
-            <Chat 
-              messages={messages} 
-              streamingContent={streamingContent} 
-              loading={loading} 
-              error={error} 
-              symbol={symbol} 
-              onSymbolChange={updateSymbol} 
-              onAnalyze={handleAnalyze} 
-            />
-          )}
-        </Box>
+            </form>
+          </Box>
+        </AnalysisContainer>
       </Box>
-    </FullHeightBox>
+    </Box>
   );
 };
 

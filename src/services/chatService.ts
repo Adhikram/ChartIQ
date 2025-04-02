@@ -1,11 +1,14 @@
-import axios from 'axios';
-import type { ChatMessage, ChatHistory, ChatResponse, AnalysisHistoryResponse } from '../types/chatService';
+  import axios from 'axios';
+import { ChatMessage, ChatHistory, ChatResponse as ChatResponseType, AnalysisHistoryResponse } from '../types';
 
 class ChatService {
   private static instance: ChatService;
   private messages: ChatMessage[] = [];
+  private baseUrl: string;
 
-  private constructor() {}
+  private constructor() {
+    this.baseUrl = '/api';
+  }
 
   public static getInstance(): ChatService {
     if (!ChatService.instance) {
@@ -38,97 +41,24 @@ class ChatService {
     }
   }
 
-  public async sendMessage(symbol: string): Promise<ChatResponse> {
+  public async sendMessage(content: string, symbol: string): Promise<ChatResponseType> {
     try {
-      // Add user message
-      const userMessage: ChatMessage = {
-        id: Date.now().toString(),
-        content: `Analyzing ${symbol}`,
-        timestamp: new Date(),
-        isUser: true,
-        asset: symbol,
-      };
-      this.messages = [userMessage]; // Reset messages for new analysis
-
-      // Generate charts using internal API
-      const chartsResponse = await axios.post<{ chartUrls: string[] }>('/api/generate-charts', { symbol });
-      if (!chartsResponse.data.chartUrls?.length) {
-        throw new Error('Failed to generate charts');
-      }
-
-      // Analyze charts using internal API with proper streaming configuration
-      const analysisResponse = await fetch('/api/analyze-charts', {
+      const response = await fetch(`${this.baseUrl}/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          chartUrls: chartsResponse.data.chartUrls,
-          symbol 
-        })
+        body: JSON.stringify({ content, symbol }),
       });
 
-      if (!analysisResponse.ok) {
-        throw new Error('Failed to analyze charts');
+      if (!response.ok) {
+        throw new Error('Failed to send message');
       }
 
-      const reader = analysisResponse.body?.getReader();
-      if (!reader) {
-        throw new Error('Failed to get stream reader');
-      }
-
-      let analysis = '';
-      const decoder = new TextDecoder();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            try {
-              const data = JSON.parse(line.slice(5));
-              switch (data.type) {
-                case 'content':
-                  analysis += data.data;
-                  // Update the AI message in real-time
-                  const updatedAiMessage: ChatMessage = {
-                    id: (Date.now() + 1).toString(),
-                    content: analysis,
-                    timestamp: new Date(),
-                    isUser: false,
-                    chartUrl: chartsResponse.data.chartUrls[0],
-                  };
-                  this.messages = [userMessage, updatedAiMessage];
-                  break;
-                case 'error':
-                  throw new Error(data.error);
-                case 'done':
-                  // Final update
-                  break;
-              }
-            } catch (e) {
-              console.error('Failed to parse chunk:', e);
-            }
-          }
-        }
-      }
-
-      // Save the analysis
-      await this.saveAnalysis(symbol, analysis, chartsResponse.data.chartUrls);
-
-      return {
-        messages: this.messages,
-      };
+      return await response.json();
     } catch (error) {
-      console.error('Error in chat service:', error);
-      return {
-        messages: this.messages,
-        error: error instanceof Error ? error.message : 'An error occurred while processing your request',
-      };
+      console.error('Error sending message:', error);
+      throw error;
     }
   }
 

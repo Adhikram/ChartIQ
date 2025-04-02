@@ -1,37 +1,5 @@
-export interface ChatMessage {
-  id: string;
-  content: string;
-  timestamp: Date;
-  isUser: boolean;
-  asset?: string;
-  chartUrl?: string;
-}
+import {ChatHistory, ChatResponse, ChatMessage} from "../types"
 
-export interface ChatHistory {
-  id: string;
-  messages: ChatMessage[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface ChatResponse {
-  messages: ChatMessage[];
-  error?: string;
-}
-
-export interface AnalysisHistoryResponse {
-  id: string;
-  symbol: string;
-  status: string;
-  createdAt: string;
-  messages: {
-    id: string;
-    content: string;
-    role: string;
-    timestamp: string;
-  }[];
-  chartUrls: string[];
-}
 
 declare class ChatService {
   private static instance: ChatService;

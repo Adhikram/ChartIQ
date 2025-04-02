@@ -5,13 +5,11 @@ import ReactMarkdown from 'react-markdown';
 import { ChatMessage } from '../types';
 
 interface ChatProps {
-  messages: ChatMessage[];
-  streamingContent: string;
+  message: ChatMessage;
   loading: boolean;
   error: string | null;
-  symbol: string;
-  onSymbolChange?: (newSymbol: string) => void;
-  onAnalyze?: () => void;
+  streamingContent: string;
+  isLastMessage: boolean;
 }
 
 const MessageThread = styled(Box)(({ theme }) => ({
@@ -41,7 +39,13 @@ const Message = styled(Box, {
     : '1px solid rgba(255, 255, 255, 0.1)',
 }));
 
-const Chat: React.FC<ChatProps> = ({ messages, streamingContent, loading, error, symbol, onSymbolChange, onAnalyze }) => {
+const Chat: React.FC<ChatProps> = ({
+  message,
+  loading,
+  error,
+  streamingContent,
+  isLastMessage
+}) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       <Box sx={{ 
@@ -52,7 +56,7 @@ const Chat: React.FC<ChatProps> = ({ messages, streamingContent, loading, error,
         backgroundColor: 'rgba(25, 118, 210, 0.08)',
       }}>
         <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
-          Analysis Chat - <span style={{ color: '#1976d2' }}>{symbol}</span>
+          Analysis Chat - <span style={{ color: '#1976d2' }}>{message.symbol}</span>
         </Typography>
       </Box>
       
@@ -63,24 +67,22 @@ const Chat: React.FC<ChatProps> = ({ messages, streamingContent, loading, error,
       )}
       
       <MessageThread>
-        {messages.map((message) => (
-          <Message key={message.id} isUser={message.isUser}>
-            {message.isUser ? (
-              <Typography variant="body1">{message.content}</Typography>
-            ) : (
-              <ReactMarkdown>{message.content}</ReactMarkdown>
-            )}
-            {message.chartUrl && (
-              <Box sx={{ mt: 2 }}>
-                <img
-                  src={message.chartUrl}
-                  alt="Technical Analysis Chart"
-                  style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
-                />
-              </Box>
-            )}
-          </Message>
-        ))}
+        <Message key={message.id} isUser={message.isUser}>
+          {message.isUser ? (
+            <Typography variant="body1">{message.content}</Typography>
+          ) : (
+            <ReactMarkdown>{message.content}</ReactMarkdown>
+          )}
+          {message.chartUrl && (
+            <Box sx={{ mt: 2 }}>
+              <img
+                src={message.chartUrl}
+                alt="Technical Analysis Chart"
+                style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+              />
+            </Box>
+          )}
+        </Message>
         
         {streamingContent && (
           <Box sx={{ padding: 3, borderRadius: 2, backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(25, 118, 210, 0.2)', boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)', margin: 1, position: 'relative', transition: 'all 0.3s ease' }}>
@@ -105,12 +107,12 @@ const Chat: React.FC<ChatProps> = ({ messages, streamingContent, loading, error,
         
         {loading && !streamingContent && (
           <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', p: 4 }}>
-            <Typography sx={{ mr: 2, opacity: 0.7 }}>Analyzing {symbol}</Typography>
+            <Typography sx={{ mr: 2, opacity: 0.7 }}>Analyzing {message.symbol}</Typography>
             <CircularProgress size={24} thickness={4} color="primary" />
           </Box>
         )}
         
-        {!loading && messages.length === 0 && !streamingContent && (
+        {!loading && !streamingContent && (
           <Box sx={{ 
             display: 'flex', 
             flexDirection: 'column', 
