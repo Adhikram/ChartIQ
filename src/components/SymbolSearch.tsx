@@ -197,7 +197,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           }}
         />
         
-        <FormControl 
+        {/* <FormControl 
           size="small" 
           sx={{ 
             minWidth: 120,
@@ -242,7 +242,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
               </MenuItem>
             ))}
           </Select>
-        </FormControl>
+        </FormControl> */}
       </Box>
       
       {showResults && searchResults.length > 0 && (

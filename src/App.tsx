@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import TelegramTradingApp from './components/TelegramTradingApp';
+import TelegramTradingApp from './components/TelegramApp/TelegramTradingApp';
 
 // Dark theme configuration for Telegram-like appearance
 const darkTheme = createTheme({

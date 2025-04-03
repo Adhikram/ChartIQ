@@ -8,53 +8,18 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Analysis {
-  id            String    @id @default(cuid())
-  symbol        String
-  userId        String?
-  status        Status    @default(PENDING)
-  chartImages   ChartImage[]
-  messages      Message[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  error         String?
-  platform      Platform  @default(WEB)
-}
-
-model ChartImage {
-  id          String    @id @default(cuid())
-  analysisId  String
-  analysis    Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
-  interval    String
-  imagePath   String
-  createdAt   DateTime  @default(now())
-  error       String?
-}
 
 model Message {
   id          String    @id @default(cuid())
-  analysisId  String
-  analysis    Analysis  @relation(fields: [analysisId], references: [id], onDelete: Cascade)
+  userId      String?
   content     String
   role        Role      @default(USER)
   createdAt   DateTime  @default(now())
 }
 
-enum Status {
-  PENDING
-  GENERATING_CHARTS
-  ANALYZING
-  COMPLETED
-  FAILED
-}
 
 enum Role {
   USER
   ASSISTANT
   SYSTEM
 }
-
-enum Platform {
-  WEB
-  TELEGRAM
-} 

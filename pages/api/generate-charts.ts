@@ -2,9 +2,6 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import puppeteer from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 // Ensure the screenshots directory exists
 const screenshotsDir = path.join(process.cwd(), 'public', 'screenshots');
