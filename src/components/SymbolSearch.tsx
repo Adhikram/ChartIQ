@@ -258,7 +258,8 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             overflow: 'auto',
             backgroundColor: 'rgba(25, 32, 42, 0.95)',
             borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.1)'
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            WebkitOverflowScrolling: 'touch'
           }}
         >
           <List dense>

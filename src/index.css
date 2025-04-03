@@ -3,6 +3,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-overflow-scrolling: touch; /* Enable momentum scrolling on iOS */
 }
 
 body {
@@ -16,12 +17,17 @@ body {
   color: white;
   height: 100vh;
   width: 100vw;
-  touch-action: manipulation; /* Better mobile experience */
+  position: fixed; /* Fix for iOS scrolling */
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
 }
 
 html, #root {
   height: 100%;
   width: 100%;
+  overflow: hidden;
 }
 
 code {
@@ -64,16 +70,21 @@ code {
   }
   
   /* Improved scrolling for analysis content on mobile */
-  .MuiBox-root[style*="overflow: auto"] {
+  .MuiBox-root[style*="overflow: auto"],
+  .MuiBox-root[style*="overflow-y: auto"],
+  .MuiPaper-root .MuiBox-root[style*="overflow"] {
     -webkit-overflow-scrolling: touch !important;
     touch-action: pan-y !important;
-    overflow-y: auto !important;
   }
-  
-  /* Make sure scrollable containers have proper height */
-  .MuiPaper-root .MuiBox-root[style*="overflow"] {
-    max-height: 50vh !important;
-    overflow-y: auto !important;
+}
+
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  /* iOS specific scroll fix */
+  .MuiBox-root[style*="overflow"],
+  .MuiBox-root[style*="overflow: auto"],
+  .MuiBox-root[style*="overflow-y"] {
+    -webkit-overflow-scrolling: touch !important;
   }
 }
 

@@ -793,72 +793,35 @@ const TelegramTradingApp: React.FC = () => {
     );
   };
 
-  // Set viewport meta tag for mobile responsiveness
-  useEffect(() => {
-    const viewportMeta = document.querySelector('meta[name="viewport"]');
-    if (viewportMeta) {
-      viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
-    }
-  }, []);
-
   // Add touch event handlers for mobile scrolling
   useEffect(() => {
-    // Prevent document body from scrolling when touching scrollable areas
-    const preventBodyScroll = (e: TouchEvent) => {
-      // Do not prevent default for elements with content that should scroll
-      const target = e.target as HTMLElement;
-      const scrollableParent = target.closest('.MuiBox-root[style*="overflow"]') as HTMLElement;
-      
-      if (scrollableParent) {
-        // Check if the scrollable container is at top or bottom
-        const isAtTop = scrollableParent.scrollTop <= 0;
-        const isAtBottom = scrollableParent.scrollHeight - scrollableParent.scrollTop <= scrollableParent.clientHeight + 1;
-        const touchY = e.touches[0].clientY;
-        
-        // Store the touch position
-        scrollableParent.dataset.touchY = touchY.toString();
+    // Set the viewport meta tag for iOS
+    const setViewportMetaTag = () => {
+      let viewportMeta = document.querySelector('meta[name="viewport"]');
+      if (!viewportMeta) {
+        viewportMeta = document.createElement('meta');
+        viewportMeta.setAttribute('name', 'viewport');
+        document.head.appendChild(viewportMeta);
       }
+      viewportMeta.setAttribute('content', 
+        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
     };
     
-    const handleTouchMove = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      const scrollableParent = target.closest('.MuiBox-root[style*="overflow"]') as HTMLElement;
-      
-      if (scrollableParent) {
-        const previousTouchY = Number(scrollableParent.dataset.touchY || 0);
-        const currentTouchY = e.touches[0].clientY;
-        const isScrollingUp = currentTouchY > previousTouchY;
-        const isScrollingDown = currentTouchY < previousTouchY;
-        
-        const isAtTop = scrollableParent.scrollTop <= 0;
-        const isAtBottom = scrollableParent.scrollHeight - scrollableParent.scrollTop <= scrollableParent.clientHeight + 1;
-        
-        // If scrolling up and already at the top, or scrolling down and already at the bottom,
-        // prevent default to avoid body scrolling
-        if ((isScrollingUp && isAtTop) || (isScrollingDown && isAtBottom)) {
-          e.preventDefault();
-        }
-        
-        // Update the touch position
-        scrollableParent.dataset.touchY = currentTouchY.toString();
-      }
-    };
+    // Apply viewport settings
+    setViewportMetaTag();
     
-    // Add event listeners
-    document.addEventListener('touchstart', preventBodyScroll, { passive: false });
-    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    // Add listener for orientation changes
+    window.addEventListener('orientationchange', setViewportMetaTag);
     
     return () => {
-      // Clean up event listeners
-      document.removeEventListener('touchstart', preventBodyScroll);
-      document.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('orientationchange', setViewportMetaTag);
     };
   }, []);
 
   return (
     <>
       <GlobalStyle />
-      <TelegramAppContainer>
+      <TelegramAppContainer className="telegram-app">
         {/* Header with Search and Type Selector */}
         <Header>
           <Typography variant="h6" sx={{ 
