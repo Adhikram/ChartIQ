@@ -100,7 +100,7 @@ export const TelegramAppContainer = styled(Box)(({ theme }: StyledProps) => ({
 }));
 
 export const Header = styled(Box)(({ theme }: StyledProps) => ({
-  padding: '1rem',
+  padding: '1rem 1rem 0.75rem',
   backgroundColor: '#5a5ef5', // Indigo color
   position: 'sticky',
   top: 0,
@@ -347,14 +347,14 @@ export const ResponsiveContainer = styled(Box)(({ theme }: StyledProps) => ({
 export const ChatContainer = styled(Box)(({ theme }: StyledProps) => ({
   display: 'flex',
   flexDirection: 'column',
-  padding: '1rem',
+  padding: '0.75rem 1.2rem',
   backgroundColor: '#fff',
-  borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+  borderTop: '1px solid rgba(0, 0, 0, 0.09)',
   width: '100%',
   position: 'sticky',
   bottom: 0,
   zIndex: 5,
-  boxShadow: '0 -2px 10px rgba(0, 0, 0, 0.05)',
+  boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
 }));
 
 export const MessageInput = styled(TextField)(({ theme }: StyledProps) => ({
@@ -366,39 +366,65 @@ export const MessageInput = styled(TextField)(({ theme }: StyledProps) => ({
     },
     '& fieldset': {
       borderColor: '#e0e0e0',
+      borderWidth: '1.5px',
     },
     '&.Mui-focused fieldset': {
-      borderColor: '#5a5ef5',
+      borderColor: '#4a57ef',
+      borderWidth: '2px',
     },
   },
   '& .MuiOutlinedInput-input': {
-    padding: '0.75rem 1rem',
+    padding: '0.9rem 1.1rem',
     color: '#333', // Ensure input text is dark
+    fontSize: '0.95rem',
+    lineHeight: 1.5,
+  },
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
 }));
 
 export const SendButton = styled(IconButton)(({ theme }: StyledProps) => ({
-  backgroundColor: '#5a5ef5',
+  backgroundColor: '#4a57ef',
   color: '#fff',
-  width: '2.5rem',
-  height: '2.5rem',
-  marginLeft: '0.5rem',
+  width: '2.7rem',
+  height: '2.7rem',
+  marginLeft: '0.6rem',
+  borderRadius: '50%',
+  boxShadow: '0 2px 8px rgba(74, 87, 239, 0.25)',
+  transition: 'all 0.2s ease',
   '&:hover': {
-    backgroundColor: '#4a4ee0',
+    backgroundColor: '#3e48d0', 
+    transform: 'scale(1.05)',
+    boxShadow: '0 3px 10px rgba(74, 87, 239, 0.3)',
   },
+  '&:active': {
+    transform: 'scale(0.98)',
+  },
+  '&.Mui-disabled': {
+    backgroundColor: 'rgba(74, 87, 239, 0.5)',
+    color: 'rgba(255, 255, 255, 0.6)',
+  }
 }));
 
 export const MessageContainer = styled(Box)<{ isUser: boolean }>(({ theme, isUser }) => ({
   maxWidth: '80%',
   padding: '0.75rem 1rem',
-  borderRadius: '1.5rem',
-  marginBottom: '0.8rem',
+  borderRadius: isUser ? '1.25rem 1.25rem 0.3rem 1.25rem' : '1.25rem 1.25rem 1.25rem 0.3rem',
+  marginBottom: '1rem',
+  marginTop: '0.5rem',
   alignSelf: isUser ? 'flex-end' : 'flex-start',
-  backgroundColor: isUser ? '#5a5ef5' : '#f0f2ff',
+  backgroundColor: isUser ? '#4a57ef' : '#edf2ff',
   color: isUser ? '#fff' : '#333',
   wordBreak: 'break-word',
-  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.06)',
+  boxShadow: isUser 
+    ? '0 3px 8px rgba(74, 87, 239, 0.25)'
+    : '0 3px 8px rgba(0, 0, 0, 0.08)',
   position: 'relative',
+  lineHeight: '1.6',
+  letterSpacing: '0.01em',
   '&:after': {
     content: '""',
     position: 'absolute',
@@ -407,10 +433,16 @@ export const MessageContainer = styled(Box)<{ isUser: boolean }>(({ theme, isUse
     width: 0,
     height: 0,
     border: '6px solid transparent',
-    borderTopColor: isUser ? '#5a5ef5' : '#f0f2ff',
+    borderTopColor: isUser ? '#4a57ef' : '#edf2ff',
     borderBottom: 0,
     marginBottom: -6,
   },
+  transition: 'all 0.2s ease-in-out',
+  '&:hover': {
+    boxShadow: isUser 
+      ? '0 4px 12px rgba(74, 87, 239, 0.3)'
+      : '0 4px 12px rgba(0, 0, 0, 0.12)',
+  }
 }));
 
 export const MessagesDisplay = styled(Box)(({ theme }: StyledProps) => ({
@@ -473,13 +505,16 @@ export const LoadMoreButton = styled(Box)(({ theme }: StyledProps) => ({
 export const MessageThreadContainer = styled(Box)(({ theme }: StyledProps) => ({
   flex: 1,
   overflow: 'auto',
-  padding: '0.75rem 1rem',
-  height: 'calc(100vh - 20rem)', // Adjusted for search + chat input
+  padding: '0.5rem 1rem',
+  height: 'calc(100vh - 12rem)', // Adjusted for better sizing
+  minHeight: '300px', // Ensure minimum height
   display: 'flex', 
   flexDirection: 'column',
   backgroundColor: '#ffffff',
   WebkitOverflowScrolling: 'touch',
   touchAction: 'pan-y',
+  scrollBehavior: 'smooth',
+  position: 'relative', // For proper positioning of children
   '&::-webkit-scrollbar': {
     width: '0.25rem',
   },
@@ -489,6 +524,18 @@ export const MessageThreadContainer = styled(Box)(({ theme }: StyledProps) => ({
   '&::-webkit-scrollbar-thumb': {
     background: 'rgba(0, 0, 0, 0.1)',
     borderRadius: '0.25rem',
+    '&:hover': {
+      background: 'rgba(0, 0, 0, 0.15)',
+    },
+  },
+  // Add transition effect for smooth appearance
+  transition: 'all 0.3s ease',
+  '& > *': {
+    animation: 'fadeIn 0.3s ease-in',
+  },
+  '@keyframes fadeIn': {
+    '0%': { opacity: 0 },
+    '100%': { opacity: 1 },
   },
 }));
 
@@ -554,6 +601,12 @@ export const TimeStamp = styled(Typography)<{ color: string }>(({ theme, color }
   fontSize: '0.65rem',
   color: color,
   display: 'inline-block',
-  padding: '0.2rem 0',
-  marginTop: '0.2rem',
+  padding: '0.2rem 0.5rem',
+  marginTop: '0.35rem',
+  opacity: 0.7,
+  borderRadius: '4px',
+  transition: 'opacity 0.2s ease',
+  '&:hover': {
+    opacity: 1
+  }
 })); 

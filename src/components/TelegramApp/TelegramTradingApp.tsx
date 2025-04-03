@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Box, Button, CircularProgress } from '@mui/material';
+import { Box, Button, CircularProgress, IconButton, Tooltip } from '@mui/material';
 import { GlobalStyle, TelegramAppContainer, MessageThreadContainer, ResponsiveContainer } from './styles/TelegramAppStyles';
 import SymbolSearch from '../SymbolSearch';
 import AppHeader from './components/AppHeader';
@@ -7,6 +7,7 @@ import ChatMessages from './components/ChatMessages';
 import ChatInput from './components/ChatInput';
 import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../services/MessageUtil';
 import { ChatMessage } from '../../types';
+import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 
 /**
  * Main TelegramTradingApp component
@@ -36,6 +37,12 @@ const TelegramTradingApp: React.FC = () => {
   const symbolRef = useRef<string>(symbol);
   const messageEndRef = useRef<HTMLDivElement>(null);
   
+  // Add a ref to track the top visible message before loading more
+  const topVisibleMessageRef = useRef<string | null>(null);
+  
+  // Add state to track if we're at the top of the chat
+  const [isAtTop, setIsAtTop] = useState<boolean>(false);
+  
   // Update ref when symbol changes
   useEffect(() => {
     symbolRef.current = symbol;
@@ -46,9 +53,102 @@ const TelegramTradingApp: React.FC = () => {
     loadMessageHistory(true);
   }, [userId]);
   
-  // Function to load message history
+  // Add scroll detection to automatically load more messages when scrolling up
+  useEffect(() => {
+    const messageThread = document.querySelector('.message-thread-container');
+    if (!messageThread) return;
+
+    // Track if we're currently loading to prevent multiple requests
+    let isLoadingRef = false;
+
+    const handleScroll = () => {
+      // Auto-load when very near the top (within 50px)
+      if (messageThread.scrollTop < 50 && !isLoadingRef && pagination.hasMore && !loadingMore) {
+        console.log('Auto-loading earlier messages');
+        isLoadingRef = true;
+        
+        // Save current position for restoration
+        if (messages.length > 0) {
+          topVisibleMessageRef.current = messages[0].id;
+        }
+        
+        // Show a loading indicator
+        const loadingIndicator = document.createElement('div');
+        loadingIndicator.className = 'auto-load-indicator';
+        loadingIndicator.innerHTML = '<div class="spinner"></div>';
+        loadingIndicator.style.cssText = `
+          position: absolute;
+          top: 10px;
+          left: 50%;
+          transform: translateX(-50%);
+          background-color: rgba(255, 255, 255, 0.9);
+          border-radius: 20px;
+          padding: 8px 16px;
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 8px rgba(90, 94, 245, 0.3);
+        `;
+        
+        // Add spinner style
+        const style = document.createElement('style');
+        style.textContent = `
+          .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(90, 94, 245, 0.3);
+            border-top: 2px solid #5a5ef5;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+          }
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `;
+        document.head.appendChild(style);
+        
+        messageThread.appendChild(loadingIndicator);
+        
+        // Load more messages
+        loadMessageHistory(false).finally(() => {
+          // Remove loading indicator
+          if (loadingIndicator.parentNode) {
+            loadingIndicator.parentNode.removeChild(loadingIndicator);
+          }
+          // Reset loading flag with slight delay to prevent multiple triggers
+          setTimeout(() => {
+            isLoadingRef = false;
+          }, 500);
+        });
+      }
+    };
+
+    messageThread.addEventListener('scroll', handleScroll);
+    return () => {
+      messageThread.removeEventListener('scroll', handleScroll);
+    };
+  }, [pagination.hasMore, loadingMore]);
+
+  // We need to restore scroll position after loading more messages
+  useEffect(() => {
+    if (!loadingMore && topVisibleMessageRef.current) {
+      // Find the previously top message in the new message list
+      const messageElement = document.getElementById(`message-${topVisibleMessageRef.current}`);
+      if (messageElement) {
+        // Scroll to that message with a slight delay to ensure rendering is complete
+        setTimeout(() => {
+          messageElement.scrollIntoView({ behavior: 'auto' });
+          topVisibleMessageRef.current = null;
+        }, 100);
+      }
+    }
+  }, [loadingMore, messages]);
+
+  // Function to load message history - modified to return a promise
   const loadMessageHistory = async (reset = false) => {
-    if (!userId) return;
+    if (!userId) return Promise.resolve();
     
     try {
       // If resetting, clear existing messages and set page to 1
@@ -56,8 +156,14 @@ const TelegramTradingApp: React.FC = () => {
         setLoading(true);
         setStatusMessage('Loading message history...');
         setPagination(prev => ({ ...prev, page: 1, nextCursor: null }));
+        // Clear the anchor message since we're resetting
+        topVisibleMessageRef.current = null;
       } else {
         setLoadingMore(true);
+        // If we're loading more but don't have a reference point, use the first message
+        if (!topVisibleMessageRef.current && messages.length > 0) {
+          topVisibleMessageRef.current = messages[0].id;
+        }
       }
       
       const requestData = {
@@ -99,8 +205,9 @@ const TelegramTradingApp: React.FC = () => {
           };
         });
         
-        // If resetting, replace all messages; otherwise append
-        setMessages(prev => reset ? formattedMessages : [...prev, ...formattedMessages]);
+        // FIXED: For "load more", prepend older messages at the beginning
+        // If resetting, replace all messages; otherwise prepend earlier messages
+        setMessages(prev => reset ? formattedMessages : [...formattedMessages, ...prev]);
         
         // Update pagination information
         if (data.pagination) {
@@ -119,22 +226,22 @@ const TelegramTradingApp: React.FC = () => {
     } catch (error) {
       console.error('Error loading message history:', error);
       setStatusMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Clear the anchor on error
+      topVisibleMessageRef.current = null;
+      return Promise.reject(error);
     } finally {
       setLoading(false);
       setLoadingMore(false);
       setStatusMessage('');
     }
-  };
-
-  // Load more messages
-  const handleLoadMore = () => {
-    loadMessageHistory(false);
+    
+    return Promise.resolve();
   };
 
   // Handle analyze button click - using the current symbol
   const handleAnalyze = async (explicitSymbol?: string) => {
-    // Reset messages and selectedAnalysisId for a fresh chat session
-    setMessages([]);
+    // Don't reset messages anymore, just continue the conversation
+    // setMessages([]);
     setStatusMessage('');
     
     // First log the current state of symbols
@@ -186,11 +293,24 @@ const TelegramTradingApp: React.FC = () => {
       console.log('Analyzing symbol:', currentSymbol);
       setStatusMessage(`Analyzing ${currentSymbol}...`);
       
+      // Add user message to the chat immediately
+      const userMessageId = Date.now().toString();
+      setMessages(prevMessages => [
+        ...prevMessages,
+        {
+          id: userMessageId,
+          content: `Analyzing ${currentSymbol}`,
+          timestamp: new Date(),
+          isUser: true,
+          asset: currentSymbol
+        }
+      ]);
+      
       // Try to save the user message but don't let an error stop the analysis
       try {
         // Ensure we have a valid message to save
         if (currentSymbol) {
-          const message = `Analyze ${currentSymbol}...`;
+          const message = `Analyze ${currentSymbol}`;
           const lastUserMessage = await saveMessageToDatabase(message, userId, 'USER');
           if (lastUserMessage) {
             setLastUserMessageId(lastUserMessage.id);
@@ -223,18 +343,6 @@ const TelegramTradingApp: React.FC = () => {
       if (!chartsData.chartUrls || chartsData.chartUrls.length === 0) {
         throw new Error('No chart URLs generated. Please try again.');
       }
-      
-      // Add user message
-      setMessages(prevMessages => [
-        ...prevMessages,
-        {
-          id: Date.now().toString(),
-          content: `Analyzing ${currentSymbol}`,
-          timestamp: new Date(),
-          isUser: true,
-          asset: currentSymbol
-        }
-      ]);
       
       // Step 2: Analyze the charts with the chartUrls from step 1
       const requestData = {
@@ -278,7 +386,8 @@ const TelegramTradingApp: React.FC = () => {
           content: "",
           timestamp: new Date(),
           isUser: false,
-          chartUrl: chartUrls[0],
+          // Remove chartUrl from the message
+          // chartUrl: chartUrls[0],
         }
       ]);
       
@@ -318,20 +427,21 @@ const TelegramTradingApp: React.FC = () => {
                   );
                   break;
                   
-                case 'images':
-                  // Update chart URLs
-                  if (Array.isArray(data.data) && data.data.length > 0) {
-                    chartUrls = data.data;
-                    // Update the AI message with the first chart URL
-                    setMessages(prevMessages => 
-                      prevMessages.map(msg => 
-                        msg.id === aiMessageId.toString() 
-                          ? { ...msg, chartUrl: chartUrls[0] }
-                          : msg
-                      )
-                    );
-                  }
-                  break;
+                // Images case is already commented out
+                // case 'images':
+                //   // Update chart URLs
+                //   if (Array.isArray(data.data) && data.data.length > 0) {
+                //     chartUrls = data.data;
+                //     // Update the AI message with the first chart URL
+                //     setMessages(prevMessages => 
+                //       prevMessages.map(msg => 
+                //         msg.id === aiMessageId.toString() 
+                //           ? { ...msg, chartUrl: chartUrls[0] }
+                //           : msg
+                //       )
+                //     );
+                //   }
+                //   break;
                   
                 case 'error':
                   console.error('Stream error:', data.data);
@@ -449,56 +559,26 @@ const TelegramTradingApp: React.FC = () => {
     <>
       <GlobalStyle />
       <TelegramAppContainer className="telegram-app">
-        {/* Header */}
-        <AppHeader />
-        <ResponsiveContainer sx={{ width: '100%' }}>
-          <SymbolSearch 
-            onSearchSubmit={(newSymbol) => {
-              console.log('Symbol search submitted with new symbol:', newSymbol);
-              // Force uppercase for better consistency
-              const formattedSymbol = newSymbol.toUpperCase();
-              // Update symbol
-              setSymbol(formattedSymbol);
-              // Set status message to confirm symbol change
-              setStatusMessage(`Symbol changed to ${formattedSymbol}`);
-              // Call handleAnalyze with the explicit symbol value
-              handleAnalyze(formattedSymbol);
-            }}
-          />
-        </ResponsiveContainer>
-
+        {/* Header with integrated SymbolSearch */}
+        <AppHeader 
+          onSearchSubmit={(newSymbol) => {
+            console.log('Symbol search submitted with new symbol:', newSymbol);
+            // Force uppercase for better consistency
+            const formattedSymbol = newSymbol.toUpperCase();
+            // Update symbol
+            setSymbol(formattedSymbol);
+            // Set status message to confirm symbol change
+            setStatusMessage(`Symbol changed to ${formattedSymbol}`);
+            // Call handleAnalyze with the explicit symbol value
+            handleAnalyze(formattedSymbol);
+          }}
+        />
+        
         {/* Messages Thread Area */}
-        <MessageThreadContainer>
-          {/* "Load More" button */}
-          {pagination.hasMore && messages.length > 0 && (
-            <Box sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              padding: '12px' 
-            }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                sx={{ 
-                  textTransform: 'none',
-                  color: '#5a5ef5',
-                  borderColor: '#5a5ef5',
-                  '&:hover': {
-                    borderColor: '#4a4ed5',
-                    backgroundColor: 'rgba(90, 94, 245, 0.04)'
-                  }
-                }}
-              >
-                {loadingMore ? (
-                  <CircularProgress size={16} sx={{ color: '#5a5ef5', mr: 1 }} />
-                ) : null}
-                {loadingMore ? 'Loading...' : 'Load earlier messages'}
-              </Button>
-            </Box>
-          )}
-          
+        <MessageThreadContainer 
+          className="message-thread-container" 
+          sx={{ position: 'relative', p: 0 }}
+        >
           {/* Chat Messages */}
           <ChatMessages 
             messages={messages}

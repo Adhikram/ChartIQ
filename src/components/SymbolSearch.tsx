@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { TextField, IconButton, Box, InputAdornment, List, ListItem, ListItemText, Typography, Chip, Paper, Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 import axios from 'axios';
 
@@ -39,6 +39,47 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
   const [showResults, setShowResults] = useState(false);
   const [assetTypeFilter, setAssetTypeFilter] = useState('');
   const [remainingCount, setRemainingCount] = useState(0);
+  
+  // Add refs for click outside detection
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const searchResultsRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchContainerRef.current && 
+        !searchContainerRef.current.contains(event.target as Node) &&
+        showResults
+      ) {
+        setShowResults(false);
+      }
+    };
+
+    // Add event listener when dropdown is open
+    if (showResults) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    // Cleanup event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showResults]);
+
+  // Handle escape key to close dropdown
+  useEffect(() => {
+    const handleEscapeKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && showResults) {
+        setShowResults(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [showResults]);
 
   // Fetch symbol search results from our enhanced API endpoint
   useEffect(() => {
@@ -131,7 +172,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
   };
 
   return (
-    <Box sx={{ width: '100%', position: 'relative' }}>
+    <Box sx={{ width: '100%', position: 'relative' }} ref={searchContainerRef}>
       <Box 
         component="form" 
         onSubmit={handleSymbolSearchSubmit} 
@@ -141,53 +182,105 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           width: '100%',
           gap: 1,
           position: 'relative',
-          flex: 1
+          flex: 1,
+          '& .MuiTextField-root': {
+            '& input': {
+              color: '#ffffff !important',
+              background: 'none !important',
+              fontWeight: '500 !important',
+              caretColor: '#ffffff',
+              textShadow: '0 0 1px rgba(0,0,0,0.5)',
+              '&::placeholder': {
+                opacity: '1 !important',
+                color: 'rgba(255,255,255,0.5) !important',
+                fontWeight: '400 !important',
+                textShadow: 'none !important',
+              }
+            },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgba(255,255,255,0.2) !important',
+              borderWidth: '1px !important'
+            },
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgba(255,255,255,0.3) !important'
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'rgba(85, 185, 255, 0.7) !important',
+              borderWidth: '1px !important'
+            }
+          }
         }}
       >
         <TextField
           placeholder="Search symbol (e.g. BTCUSDT, NASDAQ:AMZN)"
           value={searchInput}
           onChange={(e) => setSearchInput(e.target.value)}
+          onFocus={() => {
+            // Show results again if there are search results and input has content
+            if (searchResults.length > 0 && searchInput.trim().length >= 2) {
+              setShowResults(true);
+            }
+          }}
+          onBlur={(e) => {
+            // Don't close if clicking on the search results dropdown
+            if (searchResultsRef.current && searchResultsRef.current.contains(e.relatedTarget as Node)) {
+              return;
+            }
+            
+            // Use a short delay to allow for interactions with search results
+            setTimeout(() => {
+              if (document.activeElement !== searchResultsRef.current) {
+                setShowResults(false);
+              }
+            }, 150);
+          }}
           variant="outlined"
           size="small"
           fullWidth
-          sx={{
-            backgroundColor: 'rgba(0, 0, 0, 0.2)',
-            borderRadius: '8px',
-            '& .MuiOutlinedInput-root': {
-              color: '#fff',
-              borderRadius: '8px',
-              '& fieldset': {
-                borderColor: 'rgba(255, 255, 255, 0.1)',
-                borderWidth: '1px',
-              },
-              '&:hover fieldset': {
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-              },
-              '&.Mui-focused fieldset': {
-                borderColor: '#1976d2',
-                borderWidth: '1px',
-              },
-              '& .MuiInputBase-input': {
-                padding: '10px 14px',
-              }
-            },
-          }}
           InputProps={{
+            sx: {
+              color: 'white',
+              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              borderRadius: '24px',
+              padding: '4px 14px',
+              height: '50px',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              transition: 'all 0.2s ease-in-out',
+              '&:hover': {
+                boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
+              },
+              '&.Mui-focused': {
+                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(85, 185, 255, 0.3)',
+              },
+            },
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton 
                   type="submit" 
-                  size="small" 
+                  size="medium" 
                   sx={{ 
-                    color: '#1976d2',
+                    color: '#ffffff',
+                    backgroundColor: 'rgba(85, 185, 255, 0.85)',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    boxShadow: '0 3px 8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
                     '&:hover': {
-                      backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                    }
+                      backgroundColor: 'rgba(85, 185, 255, 1)',
+                      transform: 'scale(1.05)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.98)',
+                    },
+                    '&:disabled': {
+                      color: 'rgba(255, 255, 255, 0.5)',
+                      backgroundColor: 'rgba(85, 185, 255, 0.5)',
+                    },
+                    transition: 'all 0.2s ease'
                   }} 
                   aria-label="search"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                   </svg>
@@ -247,49 +340,97 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
       
       {showResults && searchResults.length > 0 && (
         <Paper 
+          ref={searchResultsRef}
+          tabIndex={-1}
           sx={{ 
             position: 'absolute', 
             top: '100%', 
             left: 0, 
             right: 0, 
-            zIndex: 10, 
-            mt: 0.5,
+            zIndex: 1000,
+            mt: 1.2,
             maxHeight: '400px',
             overflow: 'auto',
-            backgroundColor: 'rgba(25, 32, 42, 0.95)',
-            borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            WebkitOverflowScrolling: 'touch'
+            backgroundColor: 'rgba(25, 32, 42, 0.97)',
+            borderRadius: '12px',
+            border: '1px solid rgba(85, 185, 255, 0.2)',
+            WebkitOverflowScrolling: 'touch',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.35)',
+            backdropFilter: 'blur(8px)',
+            animation: 'dropdownFade 0.25s ease-out',
+            '@keyframes dropdownFade': {
+              '0%': { opacity: 0, transform: 'translateY(-10px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' }
+            },
+            '&::-webkit-scrollbar': {
+              width: '6px',
+            },
+            '&::-webkit-scrollbar-track': {
+              background: 'rgba(0, 0, 0, 0.1)',
+              borderRadius: '3px',
+            },
+            '&::-webkit-scrollbar-thumb': {
+              background: 'rgba(85, 185, 255, 0.5)',
+              borderRadius: '3px',
+              '&:hover': {
+                background: 'rgba(85, 185, 255, 0.7)',
+              }
+            }
           }}
+          elevation={8}
         >
-          <List dense>
+          <List dense sx={{ py: 0.5 }}>
             {searchResults.map((result, index) => (
               <ListItem 
                 key={`${result.id}-${index}`}
                 button
                 onClick={() => handleSymbolSelect(result)}
                 sx={{
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
                   '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.08)'
+                    backgroundColor: 'rgba(85, 185, 255, 0.15)',
+                    transition: 'background-color 0.15s ease',
                   },
-                  p: 1.5
+                  '&:active': {
+                    backgroundColor: 'rgba(85, 185, 255, 0.25)',
+                  },
+                  padding: '0.9rem 1.2rem',
+                  transition: 'all 0.15s ease-in-out',
                 }}
               >
                 <ListItemText
                   primary={
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography color="white" fontWeight="bold">
+                    <Box sx={{ 
+                      display: 'grid',
+                      gridTemplateColumns: 'auto auto 1fr', 
+                      gap: 1.2,
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      mb: 0.5
+                    }}>
+                      <Typography 
+                        color="white" 
+                        fontWeight="600" 
+                        sx={{ 
+                          fontSize: '0.95rem',
+                          letterSpacing: '0.01em',
+                          textShadow: '0 0 1px rgba(0,0,0,0.5)',
+                          mr: 0.5
+                        }}
+                      >
                         {result.symbol}
                       </Typography>
                       <Chip 
                         label={result.exchange} 
                         size="small"
                         sx={{ 
-                          backgroundColor: 'rgba(0, 0, 0, 0.3)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.4)',
                           height: '20px',
                           fontSize: '0.65rem',
-                          color: 'rgba(255, 255, 255, 0.8)'
+                          color: 'rgba(255, 255, 255, 0.95)',
+                          fontWeight: 500,
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                         }} 
                       />
                       <Chip 
@@ -298,27 +439,109 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                         sx={{ 
                           backgroundColor: getTypeColor(result.type),
                           height: '20px',
-                          fontSize: '0.65rem'
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.15)',
+                          justifySelf: 'start',
                         }} 
                       />
-                      {result.currency_code && (
-                        <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                          {result.currency_code}
-                        </Typography>
-                      )}
                     </Box>
                   }
                   secondary={
-                    <Box sx={{ mt: 0.5 }}>
-                      <Typography variant="body2" color="rgba(255, 255, 255, 0.7)" component="span" sx={{ fontSize: '0.8rem' }}>
+                    <Box sx={{ mt: 0.8 }}>
+                      <Typography 
+                        variant="body2" 
+                        color="rgba(255, 255, 255, 0.85)" 
+                        component="span" 
+                        sx={{ 
+                          fontSize: '0.82rem',
+                          lineHeight: 1.4,
+                          display: 'block',
+                          mb: 0.7,
+                          fontWeight: 400,
+                        }}
+                      >
                         {result.description.replace(/<\/?em>/g, '')}
                       </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                        <Typography variant="caption" color="rgba(255, 255, 255, 0.5)">
+                      
+                      <Box sx={{ 
+                        display: 'flex', 
+                        flexWrap: 'wrap',
+                        gap: 1.8, 
+                        mt: 0.7,
+                        alignItems: 'center' 
+                      }}>
+                        {result.currency_code && (
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: 'rgba(255, 255, 255, 0.75)',
+                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                              padding: '0.15rem 0.5rem',
+                              borderRadius: '4px',
+                              fontSize: '0.65rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Box 
+                              component="span" 
+                              sx={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                backgroundColor: 'rgba(85, 185, 255, 0.75)',
+                                display: 'inline-block',
+                                mr: 0.8,
+                              }} 
+                            />
+                            {result.currency_code}
+                          </Typography>
+                        )}
+                      
+                        <Typography 
+                          variant="caption" 
+                          sx={{ 
+                            color: 'rgba(255, 255, 255, 0.7)',
+                            fontSize: '0.7rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          <Box 
+                            component="span" 
+                            sx={{ 
+                              width: '6px', 
+                              height: '6px', 
+                              borderRadius: '50%', 
+                              backgroundColor: 'rgba(85, 185, 255, 0.6)',
+                              display: 'inline-block',
+                              mr: 0.8,
+                            }} 
+                          />
                           {result.fullExchange}
                         </Typography>
                         {result.country && (
-                          <Typography variant="caption" color="rgba(255, 255, 255, 0.5)">
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: 'rgba(255, 255, 255, 0.7)',
+                              fontSize: '0.7rem',
+                              display: 'flex',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Box 
+                              component="span" 
+                              sx={{ 
+                                width: '6px', 
+                                height: '6px', 
+                                borderRadius: '50%', 
+                                backgroundColor: 'rgba(255, 215, 85, 0.6)',
+                                display: 'inline-block',
+                                mr: 0.8,
+                              }} 
+                            />
                             {result.country}
                           </Typography>
                         )}
@@ -341,10 +564,56 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
       )}
       
       {loading && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-          <Typography variant="caption" color="rgba(255, 255, 255, 0.7)">
-            Searching...
-          </Typography>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center',
+          position: 'absolute', 
+          top: '100%', 
+          left: 0, 
+          right: 0, 
+          zIndex: 1000,
+          mt: 1.2,
+          py: 2,
+          backgroundColor: 'rgba(25, 32, 42, 0.97)',
+          borderRadius: '12px',
+          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
+          backdropFilter: 'blur(8px)',
+          animation: 'dropdownFade 0.25s ease-out',
+          '@keyframes dropdownFade': {
+            '0%': { opacity: 0, transform: 'translateY(-10px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' }
+          },
+        }}>
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 1.2,
+          }}>
+            <Box
+              sx={{
+                width: '18px',
+                height: '18px',
+                border: '2px solid rgba(255, 255, 255, 0.1)',
+                borderTop: '2px solid rgba(85, 185, 255, 0.9)',
+                borderRadius: '50%',
+                animation: 'spin 1s linear infinite',
+                '@keyframes spin': {
+                  '0%': { transform: 'rotate(0deg)' },
+                  '100%': { transform: 'rotate(360deg)' }
+                }
+              }}
+            />
+            <Typography 
+              variant="caption" 
+              sx={{ 
+                color: 'rgba(255, 255, 255, 0.85)',
+                fontSize: '0.85rem',
+                fontWeight: 500,
+              }}
+            >
+              Searching...
+            </Typography>
+          </Box>
         </Box>
       )}
       
@@ -355,16 +624,54 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             top: '100%', 
             left: 0, 
             right: 0, 
-            zIndex: 10, 
-            mt: 0.5,
-            p: 2,
-            backgroundColor: 'rgba(25, 32, 42, 0.95)',
-            borderRadius: '8px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            textAlign: 'center'
+            zIndex: 1000, 
+            mt: 1.2,
+            p: 2.5,
+            backgroundColor: 'rgba(25, 32, 42, 0.97)',
+            borderRadius: '12px',
+            border: '1px solid rgba(85, 185, 255, 0.2)',
+            textAlign: 'center',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(8px)',
+            animation: 'dropdownFade 0.25s ease-out',
+            '@keyframes dropdownFade': {
+              '0%': { opacity: 0, transform: 'translateY(-10px)' },
+              '100%': { opacity: 1, transform: 'translateY(0)' }
+            },
           }}
+          elevation={6}
         >
-          <Typography variant="body2" color="rgba(255, 255, 255, 0.7)">
+          <Typography 
+            variant="body2" 
+            sx={{ 
+              color: 'rgba(255, 255, 255, 0.8)',
+              fontSize: '0.9rem',
+              fontWeight: 500,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: 1.5,
+            }}
+          >
+            <Box 
+              component="span" 
+              sx={{ 
+                width: '40px',
+                height: '40px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(85, 185, 255, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mb: 0.5,
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="rgba(85, 185, 255, 0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 8V12" stroke="rgba(85, 185, 255, 0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 16H12.01" stroke="rgba(85, 185, 255, 0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </Box>
             No results found. Try a different search term or filter.
           </Typography>
         </Paper>

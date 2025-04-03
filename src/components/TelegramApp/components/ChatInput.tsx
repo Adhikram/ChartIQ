@@ -27,34 +27,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
       borderTop: '1px solid rgba(0, 0, 0, 0.1)',
       backgroundColor: '#fff',
     }}>
-      {/* Asset info (shown when a symbol is selected) */}
-      {symbol && (
-        <Box sx={{ 
-          padding: '0.5rem 1rem',
-          backgroundColor: '#f8f9ff',
-          borderBottom: '1px solid rgba(0, 0, 0, 0.05)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between'
-        }}>
-          <Typography variant="subtitle2" sx={{ 
-            fontWeight: 'bold',
-            color: '#333',
-            display: 'flex',
-            alignItems: 'center',
-          }}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '0.5rem' }}>
-              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-            </svg>
-            {symbol}
-          </Typography>
-          {statusMessage && (
-            <Typography variant="caption" sx={{ color: '#666' }}>
-              {statusMessage}
-            </Typography>
-          )}
-        </Box>
-      )}
       
       {/* Chat Messages Input */}
       <ChatContainer>
