@@ -122,6 +122,8 @@ const AnalysisThreadContainer = styled(Box)(({ theme }: StyledProps) => ({
   height: 'calc(100vh - 7.25rem)', // Responsive height based on rem
   display: 'flex', 
   flexDirection: 'column',
+  WebkitOverflowScrolling: 'touch', // Add momentum scrolling for iOS
+  touchAction: 'pan-y', // Enable vertical touch scrolling
   '&::-webkit-scrollbar': {
     width: '0.25rem',
   },
@@ -301,6 +303,8 @@ const AnalysisContent = styled(Box)(({ theme }: StyledProps) => ({
   fontSize: '0.9rem',
   lineHeight: '1.5',
   whiteSpace: 'pre-wrap',
+  WebkitOverflowScrolling: 'touch', // Add momentum scrolling for iOS
+  touchAction: 'pan-y', // Enable vertical touch scrolling
   '&::-webkit-scrollbar': {
     width: '0.4rem',
   },
@@ -795,6 +799,60 @@ const TelegramTradingApp: React.FC = () => {
     if (viewportMeta) {
       viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
     }
+  }, []);
+
+  // Add touch event handlers for mobile scrolling
+  useEffect(() => {
+    // Prevent document body from scrolling when touching scrollable areas
+    const preventBodyScroll = (e: TouchEvent) => {
+      // Do not prevent default for elements with content that should scroll
+      const target = e.target as HTMLElement;
+      const scrollableParent = target.closest('.MuiBox-root[style*="overflow"]') as HTMLElement;
+      
+      if (scrollableParent) {
+        // Check if the scrollable container is at top or bottom
+        const isAtTop = scrollableParent.scrollTop <= 0;
+        const isAtBottom = scrollableParent.scrollHeight - scrollableParent.scrollTop <= scrollableParent.clientHeight + 1;
+        const touchY = e.touches[0].clientY;
+        
+        // Store the touch position
+        scrollableParent.dataset.touchY = touchY.toString();
+      }
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollableParent = target.closest('.MuiBox-root[style*="overflow"]') as HTMLElement;
+      
+      if (scrollableParent) {
+        const previousTouchY = Number(scrollableParent.dataset.touchY || 0);
+        const currentTouchY = e.touches[0].clientY;
+        const isScrollingUp = currentTouchY > previousTouchY;
+        const isScrollingDown = currentTouchY < previousTouchY;
+        
+        const isAtTop = scrollableParent.scrollTop <= 0;
+        const isAtBottom = scrollableParent.scrollHeight - scrollableParent.scrollTop <= scrollableParent.clientHeight + 1;
+        
+        // If scrolling up and already at the top, or scrolling down and already at the bottom,
+        // prevent default to avoid body scrolling
+        if ((isScrollingUp && isAtTop) || (isScrollingDown && isAtBottom)) {
+          e.preventDefault();
+        }
+        
+        // Update the touch position
+        scrollableParent.dataset.touchY = currentTouchY.toString();
+      }
+    };
+    
+    // Add event listeners
+    document.addEventListener('touchstart', preventBodyScroll, { passive: false });
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    
+    return () => {
+      // Clean up event listeners
+      document.removeEventListener('touchstart', preventBodyScroll);
+      document.removeEventListener('touchmove', handleTouchMove);
+    };
   }, []);
 
   return (
