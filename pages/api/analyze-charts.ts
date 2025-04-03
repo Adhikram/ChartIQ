@@ -1,19 +1,16 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import OpenAI from 'openai';
 import fs from 'fs';
 import path from 'path';
 import { getChartAnalysisPrompt } from '../../prompts/chart-analysis';
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { ChatOpenAI } from "@langchain/openai";
+import { HumanMessage } from "@langchain/core/messages";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { chartUrls, symbol } = req.body;
+  const { chartUrls, symbol, userId } = req.body;
 
   if (!chartUrls || !Array.isArray(chartUrls)) {
     return res.status(400).json({ error: 'Chart URLs are required and must be an array' });
@@ -37,37 +34,54 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     );
 
-    const model = process.env.OPENAI_MODEL_NAME || "gpt-4o";
-    const stream = await openai.chat.completions.create({
-      model,
-      messages: [
+    // Create a LangChain ChatOpenAI instance with streaming enabled
+    const model = new ChatOpenAI({
+      modelName: process.env.OPENAI_MODEL_NAME || "gpt-4o",
+      temperature: 0.2,
+      streaming: true,
+      callbacks: [
         {
-          role: "user",
-          content: [
-            { 
-              type: "text" as const,
-              text: getChartAnalysisPrompt(symbol)
-            },
-            ...imageContents.map(base64Image => ({
-              type: "image_url" as const,
-              image_url: {
-                url: base64Image
-              }
-            }))
-          ]
+          handleLLMNewToken(token) {
+            // Stream each token as it's generated
+            if (token) {
+              res.write(`data: ${JSON.stringify({ type: 'content', data: token })}\n\n`);
+            }
+          }
         }
-      ],
-      max_tokens: 1000,
-      stream: true,
+      ]
     });
 
-    // Stream the response
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content || '';
-      if (content) {
-        res.write(`data: ${JSON.stringify({ type: 'content', data: content })}\n\n`);
+    // Create the message content with text and images
+    const messageContent = [
+      {
+        type: "text",
+        text: getChartAnalysisPrompt(symbol)
+      },
+      ...imageContents.map(base64Image => ({
+        type: "image_url",
+        image_url: {
+          url: base64Image
+        }
+      }))
+    ];
+
+    // Create a human message with the content
+    const message = new HumanMessage({
+      content: messageContent
+    });
+
+    // Set up tracing metadata
+    const runOptions = {
+      tags: ["chart-analysis", "technical-analysis"],
+      metadata: {
+        userId: userId || "anonymous",
+        symbol,
+        chartCount: chartUrls.length
       }
-    }
+    };
+
+    // Call the model with streaming
+    await model.invoke([message], runOptions);
 
     // End the stream
     res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);

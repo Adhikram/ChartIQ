@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, InputAdornment } from '@mui/material';
+import { Box, Typography, InputAdornment, CircularProgress } from '@mui/material';
 import { ChatContainer, MessageInput, SendButton } from '../styles/TelegramAppStyles';
 
 interface ChatInputProps {
@@ -9,6 +9,7 @@ interface ChatInputProps {
   handleKeyPress: (e: React.KeyboardEvent, symbol: string) => void;
   symbol: string;
   statusMessage: string | null;
+  isLoading?: boolean;
 }
 
 /**
@@ -20,7 +21,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
   handleSendMessage,
   handleKeyPress,
   symbol,
-  statusMessage
+  statusMessage,
+  isLoading = false
 }) => {
   return (
     <Box sx={{ 
@@ -38,23 +40,50 @@ const ChatInput: React.FC<ChatInputProps> = ({
             value={chatInput}
             onChange={(e) => setChatInput(e.target.value)}
             onKeyPress={(e) => handleKeyPress(e, symbol)}
+            disabled={isLoading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <SendButton onClick={() => handleSendMessage(symbol)} disabled={chatInput.trim() === ''}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                      <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
-                  </SendButton>
+                  {isLoading ? (
+                    <CircularProgress size={24} color="primary" />
+                  ) : (
+                    <SendButton onClick={() => handleSendMessage(symbol)} disabled={chatInput.trim() === ''}>
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    </SendButton>
+                  )}
                 </InputAdornment>
               ),
             }}
           />
         </Box>
-        <Typography variant="caption" sx={{ mt: 0.5, color: 'rgba(0, 0, 0, 0.5)', fontSize: '0.7rem' }}>
-          Try asking about support/resistance levels, trend analysis, or recommendations
-        </Typography>
+        
+        {/* Status Message or Hint */}
+        <Box sx={{ 
+          mt: 0.5, 
+          minHeight: '18px', 
+          display: 'flex', 
+          alignItems: 'center'
+        }}>
+          {isLoading && statusMessage ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={12} color="primary" />
+              <Typography variant="caption" sx={{ color: '#5a5ef5', fontWeight: 500 }}>
+                {statusMessage}
+              </Typography>
+            </Box>
+          ) : statusMessage ? (
+            <Typography variant="caption" sx={{ color: 'rgba(0, 0, 0, 0.7)' }}>
+              {statusMessage}
+            </Typography>
+          ) : (
+            <Typography variant="caption" sx={{ color: 'rgba(0, 0, 0, 0.5)', fontSize: '0.7rem' }}>
+              Try asking about support/resistance levels, trend analysis, or recommendations
+            </Typography>
+          )}
+        </Box>
       </ChatContainer>
     </Box>
   );

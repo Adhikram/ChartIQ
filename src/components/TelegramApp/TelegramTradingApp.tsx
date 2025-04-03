@@ -7,7 +7,8 @@ import ChatMessages from './components/ChatMessages';
 import ChatInput from './components/ChatInput';
 import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../services/MessageUtil';
 import { ChatMessage } from '../../types';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { ConversationMessage } from '../../services/agents/stockAssistantAgent';
+
 
 /**
  * Main TelegramTradingApp component
@@ -23,6 +24,12 @@ const TelegramTradingApp: React.FC = () => {
   const [streamingContent, setStreamingContent] = useState<string>('');
   const [userId, setUserId] = useState<string>('user123');
   const [lastUserMessageId, setLastUserMessageId] = useState<string | null>(null);
+  
+  // Add new state for tracking if an AI response is being generated
+  const [agentLoading, setAgentLoading] = useState<boolean>(false);
+  
+  // Add state to maintain conversation history
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   
   // Pagination state
   const [pagination, setPagination] = useState({
@@ -158,6 +165,32 @@ const TelegramTradingApp: React.FC = () => {
         setPagination(prev => ({ ...prev, page: 1, nextCursor: null }));
         // Clear the anchor message since we're resetting
         topVisibleMessageRef.current = null;
+        
+        // Also fetch conversation history for the agent when resetting
+        try {
+          const historyResponse = await fetch('/api/message-history', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userId,
+              limit: 20,
+              includeConversationHistory: true
+            }),
+          });
+          
+          if (historyResponse.ok) {
+            const historyData = await historyResponse.json();
+            if (historyData.conversationHistory && Array.isArray(historyData.conversationHistory)) {
+              setConversationHistory(historyData.conversationHistory);
+              console.log('Initialized conversation history with', historyData.conversationHistory.length, 'messages');
+            }
+          }
+        } catch (historyError) {
+          console.error('Error initializing conversation history:', historyError);
+          // Continue even if this fails, will rebuild from database as needed
+        }
       } else {
         setLoadingMore(true);
         // If we're loading more but don't have a reference point, use the first message
@@ -243,6 +276,10 @@ const TelegramTradingApp: React.FC = () => {
     // Don't reset messages anymore, just continue the conversation
     // setMessages([]);
     setStatusMessage('');
+    
+    // Reset conversation history when starting a new analysis
+    setConversationHistory([]);
+    console.log('Reset conversation history for new analysis');
     
     // First log the current state of symbols
     console.log('Symbol state before analysis:', {
@@ -493,7 +530,7 @@ const TelegramTradingApp: React.FC = () => {
   };
 
   // Handler functions
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
     
     // Create a unique ID for the message
@@ -505,22 +542,98 @@ const TelegramTradingApp: React.FC = () => {
       type: 'user',
       content: chatInput,
       timestamp: new Date().toISOString(),
+      isUser: true,
     };
     
     setMessages(prev => [...prev, userMessage]);
     
-    // Save message to database but don't wait for it
-    saveMessageToDatabase(chatInput, userId, 'USER')
-      .then(savedMessage => {
-        if (savedMessage) {
-          console.log('Message saved successfully:', savedMessage.id);
-        } else {
-          console.warn('Message saved to UI but not to database');
-        }
-      })
-      .catch(error => console.error('Failed to save user message:', error));
+    // Save message to database
+    try {
+      const savedMessage = await saveMessageToDatabase(chatInput, userId, 'USER');
+      if (savedMessage) {
+        console.log('Message saved successfully:', savedMessage.id);
+      }
+    } catch (error) {
+      console.error('Failed to save user message:', error);
+    }
     
-    // Clear input regardless of save success
+    // Add the user message to conversation history
+    const userHistoryMessage: ConversationMessage = {
+      role: 'user',
+      content: chatInput
+    };
+    
+    // Update conversation history with the new user message
+    const updatedHistory = [...conversationHistory, userHistoryMessage];
+    setConversationHistory(updatedHistory);
+    
+    // If there are previous AI messages, treat this as a follow-up question
+    const previousAiMessage = [...messages].reverse().find(msg => !msg.isUser);
+    
+    if (previousAiMessage) {
+      try {
+        setAgentLoading(true);
+        setStatusMessage('Processing your question...');
+        
+        // Call the stock assistant API
+        const response = await fetch('/api/stock-assistant', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            question: chatInput,
+            userId,
+            conversationHistory: updatedHistory, // Send the updated conversation history
+          }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Add agent response to messages
+        if (data.response) {
+          const agentMessageId = Date.now().toString();
+          
+          const agentMessage = {
+            id: agentMessageId,
+            content: data.response,
+            timestamp: new Date().toISOString(),
+            isUser: false,
+          };
+          
+          setMessages(prev => [...prev, agentMessage]);
+          
+          // Use the updated conversation history from the server
+          if (data.conversationHistory && Array.isArray(data.conversationHistory)) {
+            setConversationHistory(data.conversationHistory);
+            console.log('Updated conversation history from server', data.conversationHistory.length);
+          }
+          
+          // Database saving is handled by the API endpoint
+        }
+      } catch (error) {
+        console.error('Error getting agent response:', error);
+        // Add error message
+        const errorMessageId = Date.now().toString();
+        const errorMessage = {
+          id: errorMessageId,
+          content: "I'm sorry, I couldn't process your question. Please try again.",
+          timestamp: new Date().toISOString(),
+          isUser: false,
+        };
+        
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setAgentLoading(false);
+        setStatusMessage('');
+      }
+    }
+    
+    // Clear input regardless of success
     setChatInput('');
   };
 
@@ -582,7 +695,7 @@ const TelegramTradingApp: React.FC = () => {
           {/* Chat Messages */}
           <ChatMessages 
             messages={messages}
-            loading={loading}
+            loading={loading || agentLoading}
             messageEndRef={messageEndRef}
           />
         </MessageThreadContainer>
@@ -595,6 +708,7 @@ const TelegramTradingApp: React.FC = () => {
           handleKeyPress={(e: React.KeyboardEvent<Element>) => handleKeyPress(e, symbolRef.current)}
           symbol={symbolRef.current}
           statusMessage={statusMessage}
+          isLoading={agentLoading || loading}
         />
       </TelegramAppContainer>
     </>

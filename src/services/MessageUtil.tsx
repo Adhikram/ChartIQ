@@ -5,7 +5,7 @@ export const formatTechnicalAnalysis = (content: string): string => {
   // Don't attempt to format if content is empty or null
   if (!content) return content;
 
-  console.log('Formatting content:', content.substring(0, 50) + '...');
+  // console.log('Formatting content:', content.substring(0, 50) + '...');
   
   // Parse any timeframe headers and add special class
   let formattedContent = content
@@ -53,7 +53,7 @@ export const formatTechnicalAnalysis = (content: string): string => {
     formattedContent += '</div>';
   }
   
-  console.log('Formatted content:', formattedContent.substring(0, 50) + '...');
+  // console.log('Formatted content:', formattedContent.substring(0, 50) + '...');
   
   return formattedContent;
 };
