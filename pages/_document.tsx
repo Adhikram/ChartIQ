@@ -10,16 +10,23 @@ class MyDocument extends Document {
     return (
       <Html>
         <Head>
-          {/* iOS specific meta tags */}
-          <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+          {/* Simplified viewport meta tags */}
+          <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <meta name="format-detection" content="telephone=no" />
           
-          {/* Prevent iOS text size adjustment */}
+          {/* Essential iOS fixes */}
           <style>{`
-            html {
-              -webkit-text-size-adjust: 100%;
+            html, body, #__next {
+              height: 100%;
+              width: 100%;
+              overflow: hidden;
+              position: relative;
+            }
+            
+            input, textarea {
+              font-size: 16px;
             }
           `}</style>
         </Head>

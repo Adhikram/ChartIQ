@@ -3,7 +3,13 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  -webkit-overflow-scrolling: touch; /* Enable momentum scrolling on iOS */
+}
+
+html {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -13,21 +19,22 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
-  background-color: #17212b; /* Telegram dark theme */
-  color: white;
-  height: 100vh;
-  width: 100vw;
-  position: fixed; /* Fix for iOS scrolling */
-  left: 0;
-  right: 0;
+  background-color: #f5f7fa; /* Updated to match app container */
+  color: #333;
+  height: 100%;
+  width: 100%;
+  position: fixed; /* Fix body to viewport */
   top: 0;
-  bottom: 0;
+  left: 0;
+  touch-action: manipulation; /* Better touch handling */
+  -webkit-overflow-scrolling: touch;
 }
 
-html, #root {
+#root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  position: relative;
 }
 
 code {
@@ -37,13 +44,13 @@ code {
 
 /* Telegram Mini App specific styles */
 :root {
-  --tg-theme-bg-color: #17212b;
-  --tg-theme-text-color: #ffffff;
-  --tg-theme-hint-color: rgba(255, 255, 255, 0.5);
-  --tg-theme-link-color: #5cabdd;
-  --tg-theme-button-color: #5cabdd;
+  --tg-theme-bg-color: #f5f7fa;
+  --tg-theme-text-color: #333333;
+  --tg-theme-hint-color: rgba(0, 0, 0, 0.5);
+  --tg-theme-link-color: #5a5ef5;
+  --tg-theme-button-color: #5a5ef5;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #232e3c;
+  --tg-theme-secondary-bg-color: #ffffff;
 }
 
 /* Optimize for mobile and small screens */
@@ -86,14 +93,28 @@ code {
   .MuiBox-root[style*="overflow-y"] {
     -webkit-overflow-scrolling: touch !important;
   }
+  
+  /* Fix for iOS chat input */
+  input, textarea {
+    font-size: 16px !important; /* Prevent zoom on focus */
+  }
+  
+  /* Fix for iOS safe areas */
+  .telegram-app {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    padding-top: env(safe-area-inset-top, 0);
+  }
 }
 
 /* For Telegram mini-app web view */
 .telegram-app {
-  max-width: 100vw;
-  overflow-x: hidden;
+  max-width: 100%;
+  height: 100%;
+  overflow: hidden;
   position: relative;
   -webkit-tap-highlight-color: transparent;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Scrollbar styling */

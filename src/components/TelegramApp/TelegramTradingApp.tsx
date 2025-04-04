@@ -500,9 +500,9 @@ const TelegramTradingApp: React.FC = () => {
       // At the end of the analysis
       // Save the final analysis result to database
       try {
-        // Only save if we have actual content
-        if (streamingContent && streamingContent.trim()) {
-          await saveMessageToDatabase(streamingContent, userId, 'ASSISTANT');
+        // Use accumulatedContent instead of streamingContent
+        if (accumulatedContent && accumulatedContent.trim()) {
+          await saveMessageToDatabase(accumulatedContent, userId, 'ASSISTANT');
           console.log('Analysis result saved to database successfully');
         } else {
           console.warn('No content to save to database');
@@ -587,7 +587,8 @@ const TelegramTradingApp: React.FC = () => {
             conversationHistory: updatedHistory, // Send the updated conversation history
           }),
         });
-        
+
+        console.log('Response from stock-assistant:', response);
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
@@ -643,28 +644,52 @@ const TelegramTradingApp: React.FC = () => {
     }
   };
   
-  // Add touch event handlers for mobile scrolling
+  // Add iOS keyboard event handling
   useEffect(() => {
-    // Set the viewport meta tag for iOS
+    // Handler for iOS keyboard showing
+    const handleVisualViewportResize = () => {
+      if (window.visualViewport) {
+        // Calculate keyboard height
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        const keyboardHeight = windowHeight - viewportHeight;
+        
+        // Set CSS variable for keyboard height
+        document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
+        
+        // Add class to body when keyboard is visible
+        if (keyboardHeight > 150) {
+          document.body.classList.add('keyboard-visible');
+          // Scroll to ensure input is visible
+          window.scrollTo(0, document.body.scrollHeight);
+        } else {
+          document.body.classList.remove('keyboard-visible');
+        }
+      }
+    };
+    
+    // Add event listener for viewport changes (iOS keyboard)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewportResize);
+    }
+    
+    // Set viewport meta tag for iOS
     const setViewportMetaTag = () => {
       let viewportMeta = document.querySelector('meta[name="viewport"]');
-      if (!viewportMeta) {
-        viewportMeta = document.createElement('meta');
-        viewportMeta.setAttribute('name', 'viewport');
-        document.head.appendChild(viewportMeta);
+      if (viewportMeta) {
+        viewportMeta.setAttribute('content', 
+          'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
       }
-      viewportMeta.setAttribute('content', 
-        'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
     };
     
     // Apply viewport settings
     setViewportMetaTag();
     
-    // Add listener for orientation changes
-    window.addEventListener('orientationchange', setViewportMetaTag);
-    
     return () => {
-      window.removeEventListener('orientationchange', setViewportMetaTag);
+      // Clean up
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewportResize);
+      }
     };
   }, []);
 
@@ -687,29 +712,36 @@ const TelegramTradingApp: React.FC = () => {
           }}
         />
         
-        {/* Messages Thread Area */}
-        <MessageThreadContainer 
-          className="message-thread-container" 
-          sx={{ position: 'relative', p: 0 }}
-        >
-          {/* Chat Messages */}
-          <ChatMessages 
-            messages={messages}
-            loading={loading || agentLoading}
-            messageEndRef={messageEndRef}
+        {/* Messages Thread Area - takes up all available space */}
+        <Box sx={{ 
+          flex: 1, 
+          position: 'relative',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column'
+        }}>
+          <MessageThreadContainer 
+            className="message-thread-container" 
+          >
+            {/* Chat Messages */}
+            <ChatMessages 
+              messages={messages}
+              loading={loading || agentLoading}
+              messageEndRef={messageEndRef}
+            />
+          </MessageThreadContainer>
+          
+          {/* Chat Input - positioned at the bottom */}
+          <ChatInput 
+            chatInput={chatInput}
+            setChatInput={setChatInput}
+            handleSendMessage={handleSendMessage}
+            handleKeyPress={(e: React.KeyboardEvent<Element>) => handleKeyPress(e, symbolRef.current)}
+            symbol={symbolRef.current}
+            statusMessage={statusMessage}
+            isLoading={agentLoading || loading}
           />
-        </MessageThreadContainer>
-        
-        {/* Chat Input */}
-        <ChatInput 
-          chatInput={chatInput}
-          setChatInput={setChatInput}
-          handleSendMessage={handleSendMessage}
-          handleKeyPress={(e: React.KeyboardEvent<Element>) => handleKeyPress(e, symbolRef.current)}
-          symbol={symbolRef.current}
-          statusMessage={statusMessage}
-          isLoading={agentLoading || loading}
-        />
+        </Box>
       </TelegramAppContainer>
     </>
   );

@@ -87,7 +87,7 @@ export const TelegramAppContainer = styled(Box)(({ theme }: StyledProps) => ({
   padding: 0,
   margin: '0 auto', // Center the container
   height: '100%',
-  maxHeight: '100vh',
+  maxHeight: '100%',
   width: '100%',
   maxWidth: '100%', // Full width on mobile 
   display: 'flex',
@@ -97,6 +97,7 @@ export const TelegramAppContainer = styled(Box)(({ theme }: StyledProps) => ({
   overflow: 'hidden',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
   boxShadow: '0 0 10px rgba(0, 0, 0, 0.1)', // Lighter shadow
+  position: 'relative', // Add position relative
 }));
 
 export const Header = styled(Box)(({ theme }: StyledProps) => ({
@@ -116,7 +117,7 @@ export const AnalysisThreadContainer = styled(Box)(({ theme }: StyledProps) => (
   flex: 1,
   overflow: 'auto',
   padding: '0.5rem',
-  height: 'calc(100vh - 7.25rem)', // Responsive height based on rem
+  height: 'auto', // Let it take available space
   display: 'flex', 
   flexDirection: 'column',
   backgroundColor: '#ffffff', // White background
@@ -351,10 +352,13 @@ export const ChatContainer = styled(Box)(({ theme }: StyledProps) => ({
   backgroundColor: '#fff',
   borderTop: '1px solid rgba(0, 0, 0, 0.09)',
   width: '100%',
-  position: 'sticky',
+  position: 'absolute', // Change from fixed to absolute
   bottom: 0,
-  zIndex: 5,
+  left: 0,
+  right: 0,
+  zIndex: 10, // Lower z-index to prevent conflicts
   boxShadow: '0 -3px 12px rgba(0, 0, 0, 0.08)',
+  paddingBottom: 'env(safe-area-inset-bottom, 0.75rem)', // Use env() or fallback
 }));
 
 export const MessageInput = styled(TextField)(({ theme }: StyledProps) => ({
@@ -376,7 +380,7 @@ export const MessageInput = styled(TextField)(({ theme }: StyledProps) => ({
   '& .MuiOutlinedInput-input': {
     padding: '0.9rem 1.1rem',
     color: '#333', // Ensure input text is dark
-    fontSize: '0.95rem',
+    fontSize: '16px', // Use 16px to prevent zoom on iOS
     lineHeight: 1.5,
   },
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
@@ -384,6 +388,15 @@ export const MessageInput = styled(TextField)(({ theme }: StyledProps) => ({
   '&:hover': {
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
   },
+  // iOS-specific fixes
+  '@supports (-webkit-touch-callout: none)': {
+    '& .MuiOutlinedInput-input': {
+      fontSize: '16px',
+      // Prevent iOS zoom on focus
+      transformOrigin: 'top left',
+      transform: 'scale(1)',
+    }
+  }
 }));
 
 export const SendButton = styled(IconButton)(({ theme }: StyledProps) => ({
@@ -506,7 +519,8 @@ export const MessageThreadContainer = styled(Box)(({ theme }: StyledProps) => ({
   flex: 1,
   overflow: 'auto',
   padding: '0.5rem 1rem',
-  height: 'calc(100vh - 12rem)', // Adjusted for better sizing
+  height: 'auto', // Let it fill available space
+  paddingBottom: '80px', // Space for the input
   minHeight: '300px', // Ensure minimum height
   display: 'flex', 
   flexDirection: 'column',
