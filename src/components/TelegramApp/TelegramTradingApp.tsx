@@ -582,6 +582,7 @@ const TelegramTradingApp: React.FC = () => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            analysis: streamingContent,
             question: chatInput,
             userId,
             conversationHistory: updatedHistory, // Send the updated conversation history
