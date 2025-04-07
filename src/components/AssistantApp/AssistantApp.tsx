@@ -1,59 +1,25 @@
+// Add TypeScript declarations at the top of the file
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: any;
+    };
+  }
+}
+
 import React, { useRef, useEffect, useState, useLayoutEffect, useCallback } from 'react';
 import { Box, Modal, useMediaQuery, useTheme, IconButton, Typography, Button, Paper, Avatar } from '@mui/material';
 import { AppContainer, GlobalStyle } from './styles';
 import { AppHeader, ChatInput, ChatMessages, SymbolSelector } from './components';
 import { ChatMessage, ConversationMessage, PaginationInfo } from './types';
 import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../services/MessageUtil';
-import crypto from 'crypto';
+import { extractTelegramUserFromUrl, formatTelegramUserId } from '../../telegramUtils';
 
 // Default user ID when not coming from Telegram
 const DEFAULT_USER_ID = 'user123';
 
 // Get bot token from environment variables 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-
-/**
- * Validates Telegram WebApp data to ensure it's from a legitimate source
- * @param initData The init data string from Telegram WebApp
- * @returns Boolean indicating if the data is valid
- */
-function validateTelegramWebAppData(initData: string): boolean {
-  if (!initData || !BOT_TOKEN) return false;
-
-  try {
-    // Parse the init data into a params object
-    const params = new URLSearchParams(initData);
-    const hash = params.get('hash');
-    if (!hash) return false;
-
-    // Remove the hash from the data string to validate
-    params.delete('hash');
-    
-    // Sort params alphabetically as required by Telegram
-    const dataCheckString = Array.from(params.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, value]) => `${key}=${value}`)
-      .join('\n');
-    
-    // Create a secret key by generating HMAC-SHA256 of "WebAppData" with bot token
-    const secretKey = crypto
-      .createHmac('sha256', 'WebAppData')
-      .update(BOT_TOKEN)
-      .digest();
-    
-    // Calculate the expected hash
-    const calculatedHash = crypto
-      .createHmac('sha256', secretKey)
-      .update(dataCheckString)
-      .digest('hex');
-    
-    // Compare the hashes to verify authenticity
-    return calculatedHash === hash;
-  } catch (error) {
-    console.error('Error validating Telegram data:', error);
-    return false;
-  }
-}
 
 /**
  * AssistantApp - A modern chat interface inspired by ChatGPT
@@ -80,6 +46,7 @@ const AssistantApp: React.FC = () => {
   const [isFromTelegram, setIsFromTelegram] = useState<boolean>(false);
   const [accumulatedContent, setAccumulatedContent] = useState<string>('');
   const [isAuthValid, setIsAuthValid] = useState<boolean | null>(null);
+  const [isValidating, setIsValidating] = useState<boolean>(true);
   
   // Welcome popup state - set default to NOT showing until we check conditions
   const [showWelcomePopup, setShowWelcomePopup] = useState<boolean>(false);
@@ -107,6 +74,9 @@ const AssistantApp: React.FC = () => {
   
   // Check if we're in Telegram environment - THIS RUNS ONCE ON COMPONENT MOUNT
   useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
     console.log("Initial app setup - checking environment");
     
     // Function to add debug message
@@ -120,82 +90,120 @@ const AssistantApp: React.FC = () => {
       setMessages([debugMsg]);
     };
     
-    // @ts-ignore - Telegram object might not exist in global scope
-    const isTelegramWebApp = window.Telegram?.WebApp !== undefined;
-    setIsFromTelegram(isTelegramWebApp);
-    
-    // Debug Telegram WebApp object to console
-    console.log('Telegram WebApp object:', window.Telegram?.WebApp);
-    
-    // Now that we've checked the environment, show the welcome popup
-    setShowWelcomePopup(true);
-    
-    if (isTelegramWebApp) {
-      try {
-        // @ts-ignore - Access Telegram WebApp API
-        const telegramWebApp = window.Telegram?.WebApp;
-        // Get initialization data and validate it
-        const initData = telegramWebApp?.initData;
+    try {
+      // Simple rule: if tgWebAppData is in URL, use it to get user data
+      const currentUrl = window.location.href;
+      
+      // Extract Telegram user data from URL parameters
+      const userFromUrl = extractTelegramUserFromUrl(currentUrl);
+      
+      // Log the extracted data
+      console.log('Extracted Telegram user data:', userFromUrl);
+      
+      // If we found valid user data in the URL
+      if (userFromUrl && typeof userFromUrl === 'object') {
+        console.log('Setting user data from URL parameters');
+        setTelegramUser(userFromUrl);
+        setIsFromTelegram(true);
         
-        // Log the full initData for debugging
-        console.log('Telegram initData:', initData);
-        
-        // Validate the Telegram WebApp data
-        const isValid = initData ? validateTelegramWebAppData(initData) : false;
-        setIsAuthValid(isValid);
-        console.log('Telegram authentication valid:', isValid);
-        
-        // Get user data from Telegram
-        const user = telegramWebApp?.initDataUnsafe?.user;
-        
-        // Store telegram user data in state
-        if (user) {
-          console.log("Setting Telegram user data:", user);
-          setTelegramUser(user);
-          
-          // Set user ID for API calls - only if auth is valid
-          if (user.id && isValid) {
-            const formattedUserId = `telegram-${user.id}`;
-            console.log(`Running in Telegram. Using Telegram user ID: ${formattedUserId}`);
-            setUserId(formattedUserId);
-          }
-        } else {
-          // If no user data, create a placeholder for testing
-          console.log("No Telegram user data found, creating placeholder");
-          setTelegramUser({
-            id: '12345678',
-            first_name: 'Test',
-            last_name: 'User',
-            username: 'testuser',
-            auth_valid: isValid
-          });
+        // Set user ID if we have an ID
+        if (userFromUrl.id) {
+          const formattedUserId = formatTelegramUserId(userFromUrl.id);
+          console.log(`Using Telegram user ID from URL: ${formattedUserId}`);
+          setUserId(formattedUserId);
         }
         
-        // Debug Telegram user data
-        console.log('Telegram user data:', user);
-        console.log('Telegram initData:', telegramWebApp?.initData);
-        console.log('Telegram initDataUnsafe:', telegramWebApp?.initDataUnsafe);
-      } catch (error) {
-        console.error("Error accessing Telegram WebApp data:", error);
-        addDebugMessage(`Error accessing Telegram data: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setAppInitialized(true);
-        setIsAuthValid(false);
+        // Set authentication as valid since it came from Telegram
+        setIsAuthValid(true);
+      } 
+      // If no data in URL, check for Telegram WebApp object
+      else {
+        // Check if Telegram WebApp is available
+        const isTelegramWebApp = window.Telegram?.WebApp !== undefined;
+        console.log('Telegram WebApp object:', window.Telegram?.WebApp);
+        
+        if (isTelegramWebApp) {
+          console.log("Running in Telegram environment");
+          setIsFromTelegram(true);
+          
+          // Get user data from Telegram WebApp
+          const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+          
+          if (user) {
+            console.log("Setting Telegram user data from WebApp:", user);
+            setTelegramUser(user);
+            
+            // Set user ID if we have an ID
+            if (user.id) {
+              const formattedUserId = formatTelegramUserId(user.id);
+              console.log(`Using Telegram user ID from WebApp: ${formattedUserId}`);
+              setUserId(formattedUserId);
+            }
+            
+            // Set authentication as valid
+            setIsAuthValid(true);
+          } else {
+            console.warn("No Telegram user data available");
+            addDebugMessage("No Telegram user data available");
+            
+            // Use fallback user ID for development/testing
+            console.log("Using default user ID: user123");
+            setUserId("user123");
+          }
+        } else {
+          console.log("Not running in Telegram environment");
+          // Use fallback user ID for development/testing
+          console.log("Using default user ID: user123");
+          setUserId("user123");
+          
+          // Create test user for non-Telegram environment
+          setTelegramUser({
+            id: 'standalone',
+            first_name: 'Standalone',
+            last_name: 'User',
+            username: 'standalone',
+          });
+          setIsAuthValid(null); // Not applicable
+        }
       }
-    } else {
-      console.log(`Not running in Telegram. Using default user ID: ${DEFAULT_USER_ID}`);
-      // Create test user for non-Telegram environment
-      setTelegramUser({
-        id: 'standalone',
-        first_name: 'Standalone',
-        last_name: 'User',
-        username: 'standalone',
-      });
-      setIsAuthValid(null); // Not applicable
+      
+      // Now that we've checked the environment, show the welcome popup
+      setShowWelcomePopup(true);
+      
+    } catch (error) {
+      console.error("Error during Telegram validation:", error);
+      addDebugMessage(`Error during Telegram validation: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      // Fallback for development/testing
+      console.log("Using default user ID due to error: user123");
+      setUserId("user123");
+      
+      // Still show welcome popup even if there was an error
+      setShowWelcomePopup(true);
+    } finally {
+      setIsValidating(false);
     }
   }, []);
 
+  // Handle Telegram user ID setting in a separate effect with proper dependency
+  useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
+    // Skip if no Telegram user data
+    if (!telegramUser || !telegramUser.id) return;
+    
+    // Format and set the user ID based on telegramUser
+    const formattedUserId = formatTelegramUserId(telegramUser.id);
+    console.log(`Setting Telegram user ID from user data: ${formattedUserId}`);
+    setUserId(formattedUserId);
+  }, [telegramUser]);
+
   // Use layout effect to ensure welcome popup state changes are applied immediately
   useLayoutEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
     // This will run synchronously after all DOM mutations
     if (showWelcomePopup === false) {
       console.log("Layout effect: Welcome popup should be hidden now");
@@ -221,19 +229,15 @@ const AssistantApp: React.FC = () => {
       rerender();
       
       // Notify Telegram the app is ready if from Telegram
-      if (isFromTelegram) {
+      if (isFromTelegram && typeof window !== 'undefined') {
         try {
-          // @ts-ignore
           if (window.Telegram?.WebApp?.ready) {
-            // @ts-ignore
             window.Telegram.WebApp.ready();
           }
           
           // Expand the WebApp if authentication is valid
           if (isAuthValid) {
-            // @ts-ignore
             if (window.Telegram?.WebApp?.expand) {
-              // @ts-ignore
               window.Telegram.WebApp.expand();
             }
           }
@@ -277,6 +281,9 @@ const AssistantApp: React.FC = () => {
   
   // Add scroll detection for loading more messages
   useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    
     const messageThread = document.querySelector('.message-thread-container');
     if (!messageThread) return;
 
@@ -308,6 +315,9 @@ const AssistantApp: React.FC = () => {
 
   // Restore scroll position after loading more messages
   useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    
     if (!loadingMore && topVisibleMessageRef.current) {
       const messageElement = document.getElementById(`message-${topVisibleMessageRef.current}`);
       if (messageElement) {
@@ -573,6 +583,9 @@ const AssistantApp: React.FC = () => {
 
   // Handle viewport adjustments for mobile
   useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
     const handleVisualViewportResize = () => {
       if (window.visualViewport) {
         document.documentElement.style.height = `${window.visualViewport.height}px`;
@@ -597,6 +610,8 @@ const AssistantApp: React.FC = () => {
 
   // Helper to set the viewport meta tag
   const setViewportMetaTag = () => {
+    if (typeof document === 'undefined') return;
+    
     let viewportMeta = document.querySelector('meta[name="viewport"]');
     if (!viewportMeta) {
       viewportMeta = document.createElement('meta');
@@ -854,6 +869,9 @@ const AssistantApp: React.FC = () => {
 
   // Add an effect to handle what happens after the welcome popup is closed
   useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    
     // This will run whenever showWelcomePopup changes
     if (!showWelcomePopup && appInitialized) {
       console.log("Welcome popup closed and app initialized - loading data");
@@ -1032,7 +1050,8 @@ const AssistantApp: React.FC = () => {
                 }}>
                   <Typography variant="body2" sx={{ fontWeight: 500, color: '#19C490', mb: 1 }}>User Details:</Typography>
                   <Typography variant="body2">ID: telegram-{telegramUser.id}</Typography>
-                  <Typography variant="body2">Username: {telegramUser.username || 'Not provided'}</Typography>
+                  {telegramUser.username && <Typography variant="body2">Username: {telegramUser.username}</Typography>}
+                  {telegramUser.language_code && <Typography variant="body2">Language: {telegramUser.language_code}</Typography>}
                   {isFromTelegram && <Typography variant="body2">Auth Status: {isAuthValid ? 'Valid' : 'Invalid'}</Typography>}
                 </Box>
               </>

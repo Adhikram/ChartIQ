@@ -2,6 +2,9 @@ import { styled } from '@mui/material/styles';
 import { Box, Paper, TextField, Button, IconButton, Typography } from '@mui/material';
 import { createGlobalStyle } from 'styled-components';
 
+// Helper to prevent isUser prop from being passed to DOM elements
+const shouldForwardProp = (prop: string) => prop !== 'isUser';
+
 // Global styles for the AssistantApp
 export const GlobalStyle = createGlobalStyle`
   body {
@@ -81,8 +84,8 @@ export const DateSeparator = styled(Box)(({ theme }) => ({
   },
 }));
 
-// Message wrapper to handle alignment
-export const MessageWrapper = styled(Box)<{ isUser: boolean }>(({ isUser }) => ({
+// Message wrapper to handle alignment - Fix for isUser prop
+export const MessageWrapper = styled(Box, { shouldForwardProp })<{ isUser: boolean }>(({ isUser }) => ({
   display: 'flex',
   flexDirection: 'row',
   justifyContent: isUser ? 'flex-end' : 'flex-start',
@@ -91,8 +94,8 @@ export const MessageWrapper = styled(Box)<{ isUser: boolean }>(({ isUser }) => (
   position: 'relative',
 }));
 
-// User/AI Avatar
-export const MessageAvatar = styled(Box)<{ isUser: boolean }>(({ isUser }) => ({
+// User/AI Avatar - Fix for isUser prop
+export const MessageAvatar = styled(Box, { shouldForwardProp })<{ isUser: boolean }>(({ isUser }) => ({
   width: '30px',
   height: '30px',
   display: 'flex',
@@ -108,8 +111,8 @@ export const MessageAvatar = styled(Box)<{ isUser: boolean }>(({ isUser }) => ({
   flexShrink: 0,
 }));
 
-// Individual message container (update)
-export const MessageContainer = styled(Box)<{ isUser: boolean }>(({ theme, isUser }) => ({
+// Individual message container - Fix for isUser prop
+export const MessageContainer = styled(Box, { shouldForwardProp })<{ isUser: boolean }>(({ theme, isUser }) => ({
   display: 'flex',
   flexDirection: 'column',
   maxWidth: '75%',
