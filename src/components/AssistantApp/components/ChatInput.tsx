@@ -114,40 +114,6 @@ const ChatInput: React.FC<ChatInputProps> = ({
           }}
         />
       </Box>
-      
-      {/* Status Message or Hint */}
-      {(statusMessage || isLoading) && (
-        <Box sx={{ 
-          minHeight: '18px', 
-          display: 'flex', 
-          alignItems: 'center',
-          justifyContent: 'center',
-          mt: 0.25,
-        }}>
-          {isLoading ? (
-            <Typography variant="caption" sx={{ color: '#10a37f', fontWeight: 500, fontSize: '0.7rem' }}>
-              {statusMessage || 'Thinking...'}
-            </Typography>
-          ) : statusMessage ? (
-            <Typography variant="caption" sx={{ color: 'rgba(0, 0, 0, 0.6)', fontSize: '0.7rem' }}>
-              {statusMessage}
-            </Typography>
-          ) : null}
-        </Box>
-      )}
-      
-      {/* Disclaimer */}
-      <Typography variant="caption" sx={{ 
-        textAlign: 'center', 
-        color: 'rgba(0, 0, 0, 0.5)', 
-        fontSize: '0.65rem', 
-        mt: 0.5,
-        display: 'block',
-        px: 1,
-        opacity: 0.8,
-      }}>
-        ChartIQ may produce inaccurate information. Verify all information before making investment decisions.
-      </Typography>
     </InputContainer>
   );
 };

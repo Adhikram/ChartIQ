@@ -81,13 +81,38 @@ export const DateSeparator = styled(Box)(({ theme }) => ({
   },
 }));
 
-// Individual message container
+// Message wrapper to handle alignment
+export const MessageWrapper = styled(Box)<{ isUser: boolean }>(({ isUser }) => ({
+  display: 'flex',
+  flexDirection: 'row',
+  justifyContent: isUser ? 'flex-end' : 'flex-start',
+  width: '100%',
+  padding: '0.2rem 1rem',
+  position: 'relative',
+}));
+
+// User/AI Avatar
+export const MessageAvatar = styled(Box)<{ isUser: boolean }>(({ isUser }) => ({
+  width: '30px',
+  height: '30px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  borderRadius: '50%',
+  backgroundColor: isUser ? '#10a37f' : '#f0f0f0',
+  color: isUser ? '#ffffff' : '#333333',
+  fontWeight: 'bold',
+  fontSize: '0.8rem',
+  marginRight: isUser ? '0' : '0.6rem',
+  marginLeft: isUser ? '0.6rem' : '0',
+  flexShrink: 0,
+}));
+
+// Individual message container (update)
 export const MessageContainer = styled(Box)<{ isUser: boolean }>(({ theme, isUser }) => ({
   display: 'flex',
   flexDirection: 'column',
-  alignSelf: isUser ? 'flex-end' : 'flex-start',
-  maxWidth: '85%',
-  margin: '0.4rem 1rem',
+  maxWidth: '75%',
   padding: '0.9rem 1.1rem',
   borderRadius: '1rem',
   backgroundColor: isUser ? '#10a37f' : '#ffffff',
@@ -98,6 +123,8 @@ export const MessageContainer = styled(Box)<{ isUser: boolean }>(({ theme, isUse
   wordBreak: 'break-word',
   transition: 'all 0.2s ease',
   border: isUser ? 'none' : '1px solid rgba(0, 0, 0, 0.1)',
+  borderTopLeftRadius: isUser ? '1rem' : '0.3rem',
+  borderTopRightRadius: isUser ? '0.3rem' : '1rem',
 }));
 
 // Message timestamp

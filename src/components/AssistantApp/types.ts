@@ -5,6 +5,7 @@ export interface ChatMessage {
   timestamp: string;
   isUser: boolean;
   symbol?: string;
+  chartUrl?: string;
 }
 
 export interface ConversationMessage {

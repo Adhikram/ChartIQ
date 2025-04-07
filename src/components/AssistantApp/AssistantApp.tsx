@@ -230,6 +230,16 @@ const AssistantApp: React.FC = () => {
         ));
       }
       
+      // Add the user message to conversation history
+      const userHistoryMessage: ConversationMessage = {
+        role: 'user',
+        content: userMessage
+      };
+      
+      // Update conversation history with the new user message
+      const updatedHistory = [...conversationHistory, userHistoryMessage];
+      setConversationHistory(updatedHistory);
+      
       // Prepare to show assistant is typing
       setStatusMessage('Assistant is thinking...');
       
@@ -250,49 +260,46 @@ const AssistantApp: React.FC = () => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Prepare the request for the assistant
-      const chatRequest = {
-        userId,
-        symbol: symbolRef.current,
-        message: userMessage,
-        conversationHistory
-      };
-      
-      // Send request to the assistant API
-      const assistantResponse = await fetch('/api/assistant', {
+      // Call the stock assistant API like in TelegramTradingApp
+      const response = await fetch('/api/stock-assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(chatRequest),
+        body: JSON.stringify({
+          analysis: streamingContent,  // Pass accumulated content from last analysis
+          question: userMessage,
+          userId,
+          conversationHistory: updatedHistory, // Send the updated conversation history
+        }),
       });
       
-      if (!assistantResponse.ok) {
-        throw new Error(`Assistant response error: ${assistantResponse.status}`);
+      console.log('Response from stock-assistant:', response);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
       
-      const assistantData = await assistantResponse.json();
+      const data = await response.json();
       
-      // Update the assistant message with the real response
-      if (assistantData && assistantData.response) {
-        // Format the response for display
-        const formattedResponse = formatTechnicalAnalysis(assistantData.response);
-        
+      // Add agent response to messages
+      if (data.response) {
         // Update the temporary message with the real content
         setMessages(prev => prev.map(msg => 
           msg.id === tempAssistantId ? { 
             ...msg, 
-            id: assistantData.messageId || tempAssistantId,
-            content: formattedResponse,
-            rawContent: assistantData.response,
+            id: data.messageId || tempAssistantId,
+            content: data.response, // No need for formatTechnicalAnalysis here
             timestamp: new Date().toISOString()
           } : msg
         ));
         
-        // Update conversation history if provided
-        if (assistantData.conversationHistory && Array.isArray(assistantData.conversationHistory)) {
-          setConversationHistory(assistantData.conversationHistory);
+        // Use the updated conversation history from the server
+        if (data.conversationHistory && Array.isArray(data.conversationHistory)) {
+          setConversationHistory(data.conversationHistory);
+          console.log('Updated conversation history from server', data.conversationHistory.length);
         }
+        
+        // Database saving is handled by the API endpoint
       } else {
         throw new Error('No response received from assistant');
       }
@@ -379,10 +386,241 @@ const AssistantApp: React.FC = () => {
 
   // Handler for symbol search submission
   const handleSymbolSearchSubmit = (selectedSymbol: string) => {
-    setSymbol(selectedSymbol);
+    console.log('Symbol search submitted with new symbol:', selectedSymbol);
+    // Format the symbol to uppercase for better consistency
+    const formattedSymbol = selectedSymbol.toUpperCase();
+    // Update symbol
+    setSymbol(formattedSymbol);
     setSymbolSearchOpen(false);
+    // Set status message to confirm symbol change
+    setStatusMessage(`Symbol changed to ${formattedSymbol}`);
     // Reload messages for the new symbol
     setTimeout(() => loadMessageHistory(true), 100);
+    // Automatically trigger analysis for the new symbol
+    handleAnalyze(formattedSymbol);
+  };
+
+  // Handle automatic analysis for a symbol
+  const handleAnalyze = async (symbolToAnalyze: string) => {
+    if (agentLoading) return;
+    
+    // Generate ID outside of try block so it's accessible in catch block
+    const tempAssistantId = Math.random().toString(36).substring(2, 15);
+    
+    try {
+      setAgentLoading(true);
+      
+      // Add the user analysis request to the database
+      try {
+        const message = `Analyze ${symbolToAnalyze}`;
+        const lastUserMessage = await saveMessageToDatabase(message, userId, 'USER');
+        if (lastUserMessage) {
+          setLastUserMessageId(lastUserMessage.id);
+          console.log('User analysis request saved to database:', lastUserMessage.id);
+        }
+      } catch (dbError) {
+        console.error('Error saving user analysis request:', dbError);
+        // Continue with analysis even if message save fails
+      }
+      
+      // Create and display a temporary assistant message
+      const newAssistantMessage: ChatMessage = {
+        id: tempAssistantId,
+        content: '<span class="assistant-prefix">Analyzing ' + symbolToAnalyze + '</span><div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>',
+        timestamp: new Date().toISOString(),
+        isUser: false,
+        symbol: symbolToAnalyze
+      };
+      
+      setMessages(prev => [...prev, newAssistantMessage]);
+      
+      // Scroll to bottom to show typing indicator
+      setTimeout(() => {
+        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      
+      // Step 1: Generate charts first
+      console.log('Generating charts for symbol:', symbolToAnalyze);
+      setStatusMessage(`Generating charts for ${symbolToAnalyze}...`);
+      
+      const generateChartsResponse = await fetch('/api/generate-charts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol: symbolToAnalyze })
+      });
+      
+      if (!generateChartsResponse.ok) {
+        const errorText = await generateChartsResponse.text();
+        console.error('Error response from generate-charts:', errorText);
+        throw new Error(`Error generating charts: ${generateChartsResponse.status} - ${errorText}`);
+      }
+      
+      const chartsData = await generateChartsResponse.json();
+      console.log('Generated charts:', chartsData);
+      
+      if (!chartsData.chartUrls || chartsData.chartUrls.length === 0) {
+        throw new Error('No chart URLs generated. Please try again.');
+      }
+      
+      // Step 2: Now analyze the charts with the chartUrls from step 1
+      setStatusMessage(`Analyzing ${symbolToAnalyze}...`);
+      
+      // Prepare the request with the same format as TelegramTradingApp
+      const requestData = {
+        chartUrls: chartsData.chartUrls,
+        symbol: symbolToAnalyze,
+        userId
+      };
+      
+      console.log('Sending analyze-charts request:', requestData);
+      
+      // Call analyze-charts instead of assistant API
+      const response = await fetch('/api/analyze-charts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData)
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+      
+      // Process streaming response
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('Failed to get stream reader');
+      }
+      
+      let accumulatedContent = '';
+      let chartUrls: string[] = chartsData.chartUrls;
+      const decoder = new TextDecoder();
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        console.log('Received chunk:', chunk);
+        
+        // Process each line (which should be in format "data: {...}")
+        const lines = chunk.split('\n');
+        
+        for (const line of lines) {
+          // Process only lines that start with "data: "
+          if (line.startsWith('data: ')) {
+            try {
+              // Extract the JSON part
+              const jsonStr = line.substring(6); // Remove "data: "
+              const data = JSON.parse(jsonStr);
+              
+              console.log('Processed data:', data);
+              
+              switch (data.type) {
+                case 'content':
+                  // Append new content
+                  accumulatedContent += data.data;
+                  // Update the AI message in real-time
+                  setMessages(prevMessages => 
+                    prevMessages.map(msg => 
+                      msg.id === tempAssistantId 
+                        ? { 
+                            ...msg, 
+                            content: formatTechnicalAnalysis(accumulatedContent),
+                            rawContent: accumulatedContent
+                          }
+                        : msg
+                    )
+                  );
+                  break;
+                  
+                case 'error':
+                  console.error('Stream error:', data.data);
+                  break;
+                  
+                case 'done':
+                  console.log('Stream completed');
+                  break;
+              }
+            } catch (e) {
+              console.error('Error parsing line:', line, e);
+              // Continue processing other lines even if one fails
+            }
+          }
+        }
+      }
+
+      // After streaming is complete, ensure the message has the chart URL
+      if (accumulatedContent) {
+        // Final update with chart URL
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempAssistantId ? { 
+            ...msg,
+            content: formatTechnicalAnalysis(accumulatedContent),
+            rawContent: accumulatedContent,
+            chartUrl: chartUrls[0]
+          } : msg
+        ));
+        
+        // Save the final analysis result to database
+        try {
+          if (accumulatedContent && accumulatedContent.trim()) {
+            await saveMessageToDatabase(accumulatedContent, userId, 'ASSISTANT');
+            console.log('Analysis result saved to database successfully');
+          } else {
+            console.warn('No content to save to database');
+            if (lastUserMessageId) {
+              console.log('Removing last user message from database:', lastUserMessageId);
+              removeLastUserMessage(lastUserMessageId);
+            }
+          }
+        } catch (saveError) {
+          console.error('Failed to save analysis result to database:', saveError);
+          // Continue anyway - user can still see the result in UI
+        }
+      } else {
+        throw new Error('No analysis content received');
+      }
+      
+    } catch (error) {
+      console.error('Error analyzing symbol:', error);
+      
+      // Remove the temporary assistant message on error
+      setMessages(prev => prev.filter(msg => msg.id !== tempAssistantId));
+      
+      // Add an error message instead
+      const errorMsg: ChatMessage = {
+        id: `error-${Date.now()}`,
+        content: `Sorry, I encountered an error analyzing ${symbolToAnalyze}. Please try again.`,
+        timestamp: new Date().toISOString(),
+        isUser: false
+      };
+      
+      setMessages(prev => [...prev, errorMsg]);
+      
+      // Remove the user message from the database if analysis fails
+      if (lastUserMessageId) {
+        try {
+          await removeLastUserMessage(lastUserMessageId);
+          console.log('Removed error-causing user message:', lastUserMessageId);
+        } catch (removeError) {
+          console.error('Failed to remove error-causing message:', removeError);
+        }
+      }
+      
+    } finally {
+      setAgentLoading(false);
+      setStatusMessage('');
+      setLastUserMessageId(null);
+      
+      // Scroll to bottom to show the full conversation
+      setTimeout(() => {
+        messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
   };
 
   return (
@@ -546,6 +784,12 @@ const AssistantApp: React.FC = () => {
               <SymbolSelector 
                 onSymbolSelect={handleSymbolSearchSubmit}
                 initialValue={symbol}
+                onKeyPress={(e) => {
+                  // Close modal on Escape key
+                  if (e.key === 'Escape') {
+                    setSymbolSearchOpen(false);
+                  }
+                }}
               />
             </Box>
           </Box>

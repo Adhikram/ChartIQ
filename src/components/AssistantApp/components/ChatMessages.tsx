@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Box, Typography, CircularProgress, Fade, useMediaQuery, useTheme } from '@mui/material';
 import { formatTechnicalAnalysis } from '../../../services/MessageUtil';
 import { ChatMessage } from '../types';
-import { MessageContainer, DateSeparator, TimeStamp, LoadingContainer } from '../styles';
+import { MessageContainer, DateSeparator, TimeStamp, LoadingContainer, MessageWrapper, MessageAvatar } from '../styles';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -151,105 +151,151 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
                 </DateSeparator>
               )}
               
-              <MessageContainer
-                isUser={message.isUser}
-              >
-                {message.isUser ? (
-                  <Typography variant={isMobile ? "body2" : "body1"} sx={{ 
-                    color: '#fff',
-                    fontWeight: '400',
-                    lineHeight: 1.6,
-                    fontSize: isMobile ? '0.9rem' : '0.95rem',
-                    letterSpacing: '0.01em',
-                  }}>
-                    {message.content}
-                  </Typography>
-                ) : (
-                  <Box 
-                    component="div"
-                    sx={{ 
-                      fontWeight: '400',
-                      lineHeight: 1.6,
-                      fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                      fontSize: isMobile ? '0.85rem' : '0.9rem',
-                      letterSpacing: '0.01em',
-                      '& .mobile-analysis-content': {
-                        width: '100%',
-                      },
-                      '& .timeframe-container': {
-                        marginTop: '0.7rem',
-                        marginBottom: '0.4rem',
-                        padding: '0.4rem 0',
-                        borderBottom: '1px solid rgba(0,0,0,0.08)',
-                      },
-                      '& .section-container': {
-                        marginTop: '0.9rem',
-                        marginBottom: '0.6rem',
-                      },
-                      '& .Price-container': {
-                        backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.9rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .On-Balance-container': {
-                        backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.9rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .Momentum-container': {
-                        backgroundColor: 'rgba(255, 152, 0, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.9rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .Trend-container': {
-                        backgroundColor: 'rgba(156, 39, 176, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.9rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .Summary-container': {
-                        backgroundColor: 'rgba(13, 71, 161, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.9rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .Outlook-container': {
-                        backgroundColor: 'rgba(0, 137, 123, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.5rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .Signals-container': {
-                        backgroundColor: 'rgba(96, 125, 139, 0.08)',
-                        padding: '0.7rem',
-                        borderRadius: '0.6rem',
-                        marginBottom: '0.5rem',
-                        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                      },
-                      '& .assistant-prefix': {
-                        fontWeight: 'bold',
-                        color: '#10a37f',
-                        marginBottom: '0.5rem',
-                        display: 'block',
-                      }
-                    }}
-                    dangerouslySetInnerHTML={{ __html: formattedContent }}
-                  />
+              <MessageWrapper isUser={message.isUser}>
+                {!message.isUser && (
+                  <MessageAvatar isUser={false}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M22 14H21C21 10.13 17.87 7 14 7H13V5.73C13.6 5.39 14 4.74 14 4C14 2.9 13.1 2 12 2C10.9 2 10 2.9 10 4C10 4.74 10.4 5.39 11 5.73V7H10C6.13 7 3 10.13 3 14H2C1.45 14 1 14.45 1 15V18C1 18.55 1.45 19 2 19H3V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V19H22C22.55 19 23 18.55 23 18V15C23 14.45 22.55 14 22 14ZM21 17H19V20H5V17H3V16H5V14C5 11.24 7.24 9 10 9H14C16.76 9 19 11.24 19 14V16H21V17ZM8.5 13.5C7.67 13.5 7 14.17 7 15C7 15.83 7.67 16.5 8.5 16.5C9.33 16.5 10 15.83 10 15C10 14.17 9.33 13.5 8.5 13.5ZM15.5 13.5C14.67 13.5 14 14.17 14 15C14 15.83 14.67 16.5 15.5 16.5C16.33 16.5 17 15.83 17 15C17 14.17 16.33 13.5 15.5 13.5Z" fill="#333333"/>
+                    </svg>
+                  </MessageAvatar>
                 )}
                 
-                <TimeStamp>
-                  {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                </TimeStamp>
-              </MessageContainer>
+                <MessageContainer isUser={message.isUser}>
+                  {message.isUser ? (
+                    <Typography variant={isMobile ? "body2" : "body1"} sx={{ 
+                      color: '#fff',
+                      fontWeight: '400',
+                      lineHeight: 1.6,
+                      fontSize: isMobile ? '0.9rem' : '0.95rem',
+                      letterSpacing: '0.01em',
+                    }}>
+                      {message.content}
+                    </Typography>
+                  ) : (
+                    <Box 
+                      component="div"
+                      sx={{ 
+                        fontWeight: '400',
+                        lineHeight: 1.6,
+                        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                        fontSize: isMobile ? '0.85rem' : '0.9rem',
+                        letterSpacing: '0.01em',
+                        '& .mobile-analysis-content': {
+                          width: '100%',
+                        },
+                        '& .timeframe-container': {
+                          marginTop: '0.7rem',
+                          marginBottom: '0.4rem',
+                          padding: '0.4rem 0',
+                          borderBottom: '1px solid rgba(0,0,0,0.08)',
+                        },
+                        '& .section-container': {
+                          marginTop: '0.9rem',
+                          marginBottom: '0.6rem',
+                        },
+                        '& .Price-container': {
+                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.9rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .On-Balance-container': {
+                          backgroundColor: 'rgba(76, 175, 80, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.9rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .Momentum-container': {
+                          backgroundColor: 'rgba(255, 152, 0, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.9rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .Trend-container': {
+                          backgroundColor: 'rgba(156, 39, 176, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.9rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .Summary-container': {
+                          backgroundColor: 'rgba(13, 71, 161, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.9rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .Outlook-container': {
+                          backgroundColor: 'rgba(0, 137, 123, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.5rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .Signals-container': {
+                          backgroundColor: 'rgba(96, 125, 139, 0.08)',
+                          padding: '0.7rem',
+                          borderRadius: '0.6rem',
+                          marginBottom: '0.5rem',
+                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
+                        },
+                        '& .assistant-prefix': {
+                          fontWeight: 'bold',
+                          color: '#10a37f',
+                          marginBottom: '0.5rem',
+                          display: 'block',
+                        },
+                        '& mark': {
+                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                          color: 'rgba(25, 118, 210, 0.9)',
+                          padding: '0.1rem 0.3rem',
+                          borderRadius: '0.2rem',
+                        }
+                      }}
+                      dangerouslySetInnerHTML={{__html: formattedContent}}
+                    />
+                  )}
+                  
+                  {/* If message has a chart URL, display it */}
+                  {!message.isUser && message.chartUrl && (
+                    <Box 
+                      sx={{ 
+                        marginTop: '0.8rem',
+                        width: '100%',
+                        borderRadius: '0.5rem',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid rgba(0, 0, 0, 0.08)',
+                      }}
+                    >
+                      <img 
+                        src={message.chartUrl} 
+                        alt={`Chart for ${message.symbol || 'analysis'}`} 
+                        style={{ 
+                          width: '100%',
+                          height: 'auto',
+                          display: 'block',
+                        }}
+                      />
+                    </Box>
+                  )}
+                  
+                  <TimeStamp>
+                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </TimeStamp>
+                </MessageContainer>
+                
+                {message.isUser && (
+                  <MessageAvatar isUser={true}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM12 6C13.93 6 15.5 7.57 15.5 9.5C15.5 11.43 13.93 13 12 13C10.07 13 8.5 11.43 8.5 9.5C8.5 7.57 10.07 6 12 6ZM12 20C9.97 20 8.1 19.33 6.66 18.12C6.53 18.01 6.48 17.84 6.54 17.68C7.18 15.72 9.39 14.5 12 14.5C14.61 14.5 16.82 15.72 17.46 17.68C17.52 17.84 17.47 18.01 17.34 18.12C15.9 19.33 14.03 20 12 20Z" fill="#ffffff"/>
+                    </svg>
+                  </MessageAvatar>
+                )}
+              </MessageWrapper>
             </Box>
           </Fade>
         );

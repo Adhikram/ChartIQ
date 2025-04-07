@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { TextField, Box, InputAdornment, List, ListItem, Typography, Chip, Paper } from '@mui/material';
+import { TextField, Box, InputAdornment, List, ListItem, Typography, Chip, Paper, IconButton } from '@mui/material';
 import axios from 'axios';
 
 interface SymbolSelectorProps {
   onSymbolSelect: (symbol: string) => void;
   initialValue?: string;
+  onKeyPress?: (e: React.KeyboardEvent) => void;
 }
 
 interface SymbolResult {
@@ -18,7 +19,7 @@ interface SymbolResult {
   country?: string;
 }
 
-const SymbolSelector: React.FC<SymbolSelectorProps> = ({ onSymbolSelect, initialValue }) => {
+const SymbolSelector: React.FC<SymbolSelectorProps> = ({ onSymbolSelect, initialValue, onKeyPress }) => {
   const [searchInput, setSearchInput] = useState('');
   const [searchResults, setSearchResults] = useState<SymbolResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -102,6 +103,21 @@ const SymbolSelector: React.FC<SymbolSelectorProps> = ({ onSymbolSelect, initial
     return () => clearTimeout(debounceTimer);
   }, [searchInput]);
 
+  // Handle direct symbol input submission
+  const handleSymbolSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput && searchInput.trim() !== '') {
+      let formattedSymbol = searchInput.trim();
+      if (!formattedSymbol.includes(':') && /^[A-Z0-9]+$/i.test(formattedSymbol)) {
+        formattedSymbol = `BINANCE:${formattedSymbol.toUpperCase()}`;
+      }
+      onSymbolSelect(formattedSymbol);
+      // Clear the search input after submission
+      setSearchInput('');
+      setShowResults(false);
+    }
+  };
+
   const handleSymbolSelect = (result: SymbolResult) => {
     // Get the properly formatted symbol ID
     const symbolId = result.id;
@@ -145,64 +161,114 @@ const SymbolSelector: React.FC<SymbolSelectorProps> = ({ onSymbolSelect, initial
       }} 
       ref={searchContainerRef}
     >
-      <TextField
-        placeholder="Search for a symbol (e.g., AAPL, BTCUSDT)"
-        value={searchInput}
-        onChange={handleSearchInputChange}
-        inputRef={inputRef}
-        onFocus={() => {
-          if (searchResults.length > 0 && searchInput.trim().length >= 2) {
-            setShowResults(true);
-          }
+      <Box 
+        component="form" 
+        onSubmit={handleSymbolSearchSubmit}
+        sx={{
+          display: 'flex',
+          width: '100%',
+          position: 'relative',
         }}
-        variant="outlined"
-        fullWidth
-        autoComplete="off"
-        InputProps={{
-          sx: {
-            color: '#333',
-            backgroundColor: '#fff',
-            borderRadius: '12px',
-            fontSize: '0.95rem',
-            '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(0, 0, 0, 0.1)',
+      >
+        <TextField
+          placeholder="Search for a symbol (e.g., AAPL, BTCUSDT)"
+          value={searchInput}
+          onChange={handleSearchInputChange}
+          inputRef={inputRef}
+          onFocus={() => {
+            if (searchResults.length > 0 && searchInput.trim().length >= 2) {
+              setShowResults(true);
+            }
+          }}
+          onKeyPress={(e) => {
+            // Handle Enter key press to submit form
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleSymbolSearchSubmit(e);
+            }
+            // If external onKeyPress handler provided, call it
+            if (onKeyPress) {
+              onKeyPress(e);
+            }
+          }}
+          variant="outlined"
+          fullWidth
+          autoComplete="off"
+          InputProps={{
+            sx: {
+              color: '#333',
+              backgroundColor: '#fff',
+              borderRadius: '12px',
+              fontSize: '0.95rem',
+              '& .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(0, 0, 0, 0.1)',
+              },
+              '&:hover .MuiOutlinedInput-notchedOutline': {
+                borderColor: 'rgba(16, 163, 127, 0.5)',
+              },
+              '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                borderColor: '#10a37f',
+                borderWidth: '1px',
+              },
             },
-            '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(16, 163, 127, 0.5)',
-            },
-            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#10a37f',
-              borderWidth: '1px',
-            },
-          },
-          startAdornment: (
-            <InputAdornment position="start">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="11" cy="11" r="8" stroke="#10a37f" strokeWidth="2" />
-                <path d="M21 21L16.65 16.65" stroke="#10a37f" strokeWidth="2" strokeLinecap="round" />
-              </svg>
-            </InputAdornment>
-          ),
-          endAdornment: loading ? (
-            <InputAdornment position="end">
-              <Box
-                sx={{
-                  width: '18px',
-                  height: '18px',
-                  border: '2px solid rgba(16, 163, 127, 0.1)',
-                  borderTop: '2px solid #10a37f',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  '@keyframes spin': {
-                    '0%': { transform: 'rotate(0deg)' },
-                    '100%': { transform: 'rotate(360deg)' }
-                  }
-                }}
-              />
-            </InputAdornment>
-          ) : null,
-        }}
-      />
+            startAdornment: (
+              <InputAdornment position="start">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="11" cy="11" r="8" stroke="#10a37f" strokeWidth="2" />
+                  <path d="M21 21L16.65 16.65" stroke="#10a37f" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </InputAdornment>
+            ),
+            endAdornment: loading ? (
+              <InputAdornment position="end">
+                <Box
+                  sx={{
+                    width: '18px',
+                    height: '18px',
+                    border: '2px solid rgba(16, 163, 127, 0.1)',
+                    borderTop: '2px solid #10a37f',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite',
+                    '@keyframes spin': {
+                      '0%': { transform: 'rotate(0deg)' },
+                      '100%': { transform: 'rotate(360deg)' }
+                    }
+                  }}
+                />
+              </InputAdornment>
+            ) : (
+              <InputAdornment position="end">
+                <IconButton 
+                  type="submit" 
+                  size="small" 
+                  sx={{ 
+                    color: '#fff',
+                    backgroundColor: '#10a37f',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(16, 163, 127, 0.1)',
+                    '&:hover': {
+                      backgroundColor: '#0e8e6d',
+                      transform: 'scale(1.05)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.98)',
+                    },
+                    transition: 'all 0.2s ease'
+                  }} 
+                  aria-label="search"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" strokeWidth="2.5" />
+                    <path d="M21 21L16.65 16.65" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+                  </svg>
+                </IconButton>
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
       
       {showResults && searchResults.length > 0 && (
         <Paper 
