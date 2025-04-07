@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import TelegramTradingApp from '../src/components/TelegramApp/TelegramTradingApp';
+import AssistantApp from '../src/components/AssistantApp/AssistantApp';
 
 // Dark theme configuration for Telegram-like appearance
 const darkTheme = createTheme({
@@ -51,7 +51,7 @@ export default function Home() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <TelegramTradingApp />
+      <AssistantApp />
     </ThemeProvider>
   );
 } 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
-import { AssistantApp } from '../src/components/AssistantApp';
+import AssistantApp from '../src/components/AssistantApp/AssistantApp';
 import Head from 'next/head';
 
 // Light theme configuration for ChatGPT-like appearance

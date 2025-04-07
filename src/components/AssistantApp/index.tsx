@@ -560,3 +560,6 @@ const AssistantApp: React.FC = () => {
 };
 
 export default AssistantApp;
+
+// Export the AssistantApp from this file
+export { default as AssistantApp } from './AssistantApp';
