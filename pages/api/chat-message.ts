@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import { PrismaClient } from '@prisma/client';
-import { formatTechnicalAnalysis } from '../../src/services/MessageUtil';
 
 const prisma = new PrismaClient();
 

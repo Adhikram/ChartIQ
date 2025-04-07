@@ -120,30 +120,8 @@ const AssistantApp: React.FC = () => {
         setPagination(prev => ({ ...prev, page: 1, nextCursor: null }));
         topVisibleMessageRef.current = null;
         
-        // Fetch conversation history for the agent when resetting
-        try {
-          const historyResponse = await fetch('/api/message-history', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              userId,
-              limit: 20,
-              includeConversationHistory: true
-            }),
-          });
-          
-          if (historyResponse.ok) {
-            const historyData = await historyResponse.json();
-            if (historyData.conversationHistory && Array.isArray(historyData.conversationHistory)) {
-              setConversationHistory(historyData.conversationHistory);
-              console.log('Initialized conversation history with', historyData.conversationHistory.length, 'messages');
-            }
-          }
-        } catch (historyError) {
-          console.error('Error initializing conversation history:', historyError);
-        }
+        // REMOVED: No longer fetching conversation history from message-history API
+        // Instead, we'll derive conversation history from UI messages after loading them
       } else {
         setLoadingMore(true);
         if (!topVisibleMessageRef.current && messages.length > 0) {
@@ -195,6 +173,18 @@ const AssistantApp: React.FC = () => {
         // Update pagination information
         if (data.pagination) {
           setPagination(data.pagination);
+        }
+        
+        // Derive conversation history from UI messages instead of using message-history API
+        // This ensures conversation history matches exactly what the user sees in the UI
+        if (reset && formattedMessages.length > 0) {
+          const derivedHistory = formattedMessages.map((msg: ChatMessage) => ({
+            role: msg.isUser ? 'user' : 'assistant',
+            content: msg.rawContent || msg.content
+          }));
+          
+          console.log('Derived conversation history from UI messages:', derivedHistory.length);
+          setConversationHistory(derivedHistory);
         }
       }
       

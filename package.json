@@ -30,6 +30,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "start:prod": "next build && next start",
     "lint": "next lint",
     "test": "react-scripts test",
     "eject": "react-scripts eject",

@@ -270,30 +270,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
                     />
                   )}
                   
-                  {/* If message has a chart URL, display it */}
-                  {!message.isUser && message.chartUrl && (
-                    <Box 
-                      sx={{ 
-                        marginTop: '0.8rem',
-                        width: '100%',
-                        borderRadius: '0.5rem',
-                        overflow: 'hidden',
-                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-                        border: '1px solid rgba(0, 0, 0, 0.08)',
-                      }}
-                    >
-                      <img 
-                        src={message.chartUrl} 
-                        alt={`Chart for ${message.symbol || 'analysis'}`} 
-                        style={{ 
-                          width: '100%',
-                          height: 'auto',
-                          display: 'block',
-                        }}
-                      />
-                    </Box>
-                  )}
-                  
                   <TimeStamp>
                     {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     {isSystemMessage && (
