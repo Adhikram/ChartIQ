@@ -185,24 +185,22 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           flex: 1,
           '& .MuiTextField-root': {
             '& input': {
-              color: '#ffffff !important',
+              color: '#333333 !important',
               background: 'none !important',
               fontWeight: '500 !important',
-              caretColor: '#ffffff',
-              textShadow: '0 0 1px rgba(0,0,0,0.5)',
+              caretColor: '#333333',
               '&::placeholder': {
                 opacity: '1 !important',
-                color: 'rgba(255,255,255,0.5) !important',
+                color: 'rgba(0, 0, 0, 0.5) !important',
                 fontWeight: '400 !important',
-                textShadow: 'none !important',
               }
             },
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255,255,255,0.2) !important',
+              borderColor: 'rgba(0, 0, 0, 0.2) !important',
               borderWidth: '1px !important'
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255,255,255,0.3) !important'
+              borderColor: 'rgba(0, 0, 0, 0.3) !important'
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
               borderColor: 'rgba(85, 185, 255, 0.7) !important',
@@ -239,8 +237,8 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           fullWidth
           InputProps={{
             sx: {
-              color: 'white',
-              backgroundColor: 'rgba(255, 255, 255, 0.15)',
+              color: '#333333',
+              backgroundColor: '#ffffff',
               borderRadius: '24px',
               padding: '4px 14px',
               height: '50px',
@@ -250,7 +248,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                 boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15)',
               },
               '&.Mui-focused': {
-                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(85, 185, 255, 0.3)',
+                boxShadow: '0 3px 8px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(85, 185, 255, 0.3)',
               },
             },
             endAdornment: (
@@ -264,7 +262,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                     width: '40px',
                     height: '40px',
                     borderRadius: '50%',
-                    boxShadow: '0 3px 8px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.1)',
+                    boxShadow: '0 2px 5px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05)',
                     '&:hover': {
                       backgroundColor: 'rgba(85, 185, 255, 1)',
                       transform: 'scale(1.05)',
@@ -351,11 +349,11 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             mt: 1.2,
             maxHeight: '400px',
             overflow: 'auto',
-            backgroundColor: 'rgba(25, 32, 42, 0.97)',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid rgba(85, 185, 255, 0.2)',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
             WebkitOverflowScrolling: 'touch',
-            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.35)',
+            boxShadow: '0 10px 25px rgba(0, 0, 0, 0.15)',
             backdropFilter: 'blur(8px)',
             animation: 'dropdownFade 0.25s ease-out',
             '@keyframes dropdownFade': {
@@ -366,7 +364,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
               width: '6px',
             },
             '&::-webkit-scrollbar-track': {
-              background: 'rgba(0, 0, 0, 0.1)',
+              background: 'rgba(0, 0, 0, 0.05)',
               borderRadius: '3px',
             },
             '&::-webkit-scrollbar-thumb': {
@@ -386,13 +384,13 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                 button
                 onClick={() => handleSymbolSelect(result)}
                 sx={{
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
                   '&:hover': {
-                    backgroundColor: 'rgba(85, 185, 255, 0.15)',
+                    backgroundColor: 'rgba(85, 185, 255, 0.1)',
                     transition: 'background-color 0.15s ease',
                   },
                   '&:active': {
-                    backgroundColor: 'rgba(85, 185, 255, 0.25)',
+                    backgroundColor: 'rgba(85, 185, 255, 0.2)',
                   },
                   padding: '0.9rem 1.2rem',
                   transition: 'all 0.15s ease-in-out',
@@ -409,12 +407,11 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                       mb: 0.5
                     }}>
                       <Typography 
-                        color="white" 
+                        color="#333333" 
                         fontWeight="600" 
                         sx={{ 
                           fontSize: '0.95rem',
                           letterSpacing: '0.01em',
-                          textShadow: '0 0 1px rgba(0,0,0,0.5)',
                           mr: 0.5
                         }}
                       >
@@ -424,13 +421,13 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                         label={result.exchange} 
                         size="small"
                         sx={{ 
-                          backgroundColor: 'rgba(0, 0, 0, 0.4)',
+                          backgroundColor: 'rgba(0, 0, 0, 0.07)',
                           height: '20px',
                           fontSize: '0.65rem',
-                          color: 'rgba(255, 255, 255, 0.95)',
+                          color: 'rgba(0, 0, 0, 0.8)',
                           fontWeight: 500,
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                          border: '1px solid rgba(0, 0, 0, 0.1)',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                         }} 
                       />
                       <Chip 
@@ -451,7 +448,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                     <Box sx={{ mt: 0.8 }}>
                       <Typography 
                         variant="body2" 
-                        color="rgba(255, 255, 255, 0.85)" 
+                        color="rgba(0, 0, 0, 0.75)" 
                         component="span" 
                         sx={{ 
                           fontSize: '0.82rem',
@@ -475,8 +472,8 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                           <Typography 
                             variant="caption" 
                             sx={{ 
-                              color: 'rgba(255, 255, 255, 0.75)',
-                              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                              color: 'rgba(0, 0, 0, 0.75)',
+                              backgroundColor: 'rgba(0, 0, 0, 0.05)',
                               padding: '0.15rem 0.5rem',
                               borderRadius: '4px',
                               fontSize: '0.65rem',
@@ -502,7 +499,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                         <Typography 
                           variant="caption" 
                           sx={{ 
-                            color: 'rgba(255, 255, 255, 0.7)',
+                            color: 'rgba(0, 0, 0, 0.7)',
                             fontSize: '0.7rem',
                             display: 'flex',
                             alignItems: 'center',
@@ -525,7 +522,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
                           <Typography 
                             variant="caption" 
                             sx={{ 
-                              color: 'rgba(255, 255, 255, 0.7)',
+                              color: 'rgba(0, 0, 0, 0.7)',
                               fontSize: '0.7rem',
                               display: 'flex',
                               alignItems: 'center',
@@ -554,7 +551,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             
             {remainingCount > 0 && (
               <ListItem sx={{ justifyContent: 'center', py: 1 }}>
-                <Typography variant="caption" color="rgba(255, 255, 255, 0.5)">
+                <Typography variant="caption" color="rgba(0, 0, 0, 0.5)">
                   + {remainingCount} more results available. Refine your search to see more specific results.
                 </Typography>
               </ListItem>
@@ -574,9 +571,9 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           zIndex: 1000,
           mt: 1.2,
           py: 2,
-          backgroundColor: 'rgba(25, 32, 42, 0.97)',
+          backgroundColor: '#ffffff',
           borderRadius: '12px',
-          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.25)',
+          boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
           backdropFilter: 'blur(8px)',
           animation: 'dropdownFade 0.25s ease-out',
           '@keyframes dropdownFade': {
@@ -593,7 +590,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
               sx={{
                 width: '18px',
                 height: '18px',
-                border: '2px solid rgba(255, 255, 255, 0.1)',
+                border: '2px solid rgba(0, 0, 0, 0.1)',
                 borderTop: '2px solid rgba(85, 185, 255, 0.9)',
                 borderRadius: '50%',
                 animation: 'spin 1s linear infinite',
@@ -606,7 +603,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             <Typography 
               variant="caption" 
               sx={{ 
-                color: 'rgba(255, 255, 255, 0.85)',
+                color: 'rgba(0, 0, 0, 0.85)',
                 fontSize: '0.85rem',
                 fontWeight: 500,
               }}
@@ -627,11 +624,11 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
             zIndex: 1000, 
             mt: 1.2,
             p: 2.5,
-            backgroundColor: 'rgba(25, 32, 42, 0.97)',
+            backgroundColor: '#ffffff',
             borderRadius: '12px',
-            border: '1px solid rgba(85, 185, 255, 0.2)',
+            border: '1px solid rgba(0, 0, 0, 0.1)',
             textAlign: 'center',
-            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.3)',
+            boxShadow: '0 8px 20px rgba(0, 0, 0, 0.15)',
             backdropFilter: 'blur(8px)',
             animation: 'dropdownFade 0.25s ease-out',
             '@keyframes dropdownFade': {
@@ -644,7 +641,7 @@ const SymbolSearch: React.FC<SymbolSearchProps> = ({ onSearchSubmit, onAnalyze }
           <Typography 
             variant="body2" 
             sx={{ 
-              color: 'rgba(255, 255, 255, 0.8)',
+              color: 'rgba(0, 0, 0, 0.7)',
               fontSize: '0.9rem',
               fontWeight: 500,
               display: 'flex',

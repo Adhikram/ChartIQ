@@ -14,6 +14,7 @@ import { AppHeader, ChatInput, ChatMessages, SymbolSelector } from './components
 import { ChatMessage, ConversationMessage, PaginationInfo } from './types';
 import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../services/MessageUtil';
 import { extractTelegramUserFromUrl, formatTelegramUserId } from '../../telegramUtils';
+import { Role } from '@prisma/client';
 
 // Default user ID when not coming from Telegram
 const DEFAULT_USER_ID = 'user123';
@@ -66,10 +67,15 @@ const AssistantApp: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
+  // After state declarations but before useRef declarations
+  const [previousAnalysis, setPreviousAnalysis] = useState<string>('');
+  const [previousAnalysisLoading, setPreviousAnalysisLoading] = useState<boolean>(false);
+  
   // Refs
   const symbolRef = useRef<string>(symbol);
   const messageEndRef = useRef<HTMLDivElement>(null);
   const topVisibleMessageRef = useRef<string | null>(null);
+  const historyLoadedRef = useRef<boolean>(false);
   const [isAtTop, setIsAtTop] = useState<boolean>(false);
   
   // Check if we're in Telegram environment - THIS RUNS ONCE ON COMPONENT MOUNT
@@ -150,20 +156,6 @@ const AssistantApp: React.FC = () => {
             console.log("Using default user ID: user123");
             setUserId("user123");
           }
-        } else {
-          console.log("Not running in Telegram environment");
-          // Use fallback user ID for development/testing
-          console.log("Using default user ID: user123");
-          setUserId("user123");
-          
-          // Create test user for non-Telegram environment
-          setTelegramUser({
-            id: 'standalone',
-            first_name: 'Standalone',
-            last_name: 'User',
-            username: 'standalone',
-          });
-          setIsAuthValid(null); // Not applicable
         }
       }
       
@@ -246,12 +238,7 @@ const AssistantApp: React.FC = () => {
         }
       }
       
-      // Force loading message history
-      setTimeout(() => {
-        if (userId) {
-          loadMessageHistory(true);
-        }
-      }, 100);
+      // We'll load history in the effect that watches appInitialized
     } catch (error) {
       console.error("Error in handleContinue:", error);
       // Fallback direct state update
@@ -260,25 +247,31 @@ const AssistantApp: React.FC = () => {
     }
   };
 
-  // Load message history when app is initialized
+  // Effect to load message history when component mounts - consolidate history loading to avoid multiple calls
   useEffect(() => {
-    if (appInitialized && userId) {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
+    if (appInitialized && userId && !historyLoadedRef.current) {
+      console.log("App initialized and userId available - loading message history");
+      historyLoadedRef.current = true;
       loadMessageHistory(true);
+      
+      // Load previous analysis for the current symbol
+      loadPreviousAnalysis();
     }
   }, [appInitialized, userId]);
 
-  // Update ref when symbol changes
+  // Update ref when symbol changes and load previous analysis for the new symbol
   useEffect(() => {
     symbolRef.current = symbol;
-  }, [symbol]);
-
-  // Load message history when component mounts or userId changes
-  useEffect(() => {
-    if (userId) {
-      loadMessageHistory(true);
+    
+    // Load previous analysis for the new symbol
+    if (userId && appInitialized) {
+      loadPreviousAnalysis();
     }
-  }, [userId]);
-  
+  }, [symbol, userId, appInitialized]);
+
   // Add scroll detection for loading more messages
   useEffect(() => {
     // Skip this effect during server-side rendering
@@ -335,6 +328,7 @@ const AssistantApp: React.FC = () => {
     
     try {
       if (reset) {
+        console.log("Loading message history (reset=true)");
         setLoading(true);
         setStatusMessage('Loading message history...');
         setPagination(prev => ({ ...prev, page: 1, nextCursor: null }));
@@ -365,6 +359,7 @@ const AssistantApp: React.FC = () => {
           console.error('Error initializing conversation history:', historyError);
         }
       } else {
+        console.log("Loading more messages (reset=false)");
         setLoadingMore(true);
         if (!topVisibleMessageRef.current && messages.length > 0) {
           topVisibleMessageRef.current = messages[0].id;
@@ -429,7 +424,58 @@ const AssistantApp: React.FC = () => {
     }
   };
 
-  // Modify handleSendMessage to use accumulated content
+  // Function to load previous analysis for the current symbol
+  const loadPreviousAnalysis = async () => {
+    if (!userId || !symbolRef.current) return;
+    
+    try {
+      setPreviousAnalysisLoading(true);
+      console.log(`Loading previous analysis for symbol: ${symbolRef.current}`);
+      
+      // Use the existing message-history endpoint instead of a separate API
+      const response = await fetch('/api/message-history', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          limit: 1,
+          includeSystemMessages: true
+        }),
+      });
+      
+      if (!response.ok) {
+        console.log(`Error fetching message history: ${response.status}`);
+        setPreviousAnalysis('');
+        setAccumulatedContent('');
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Look for the most recent SYSTEM message which should contain the analysis
+      const lastAnalysis = data.lastAnalysis; // Most recent system message
+      
+      if (lastAnalysis && lastAnalysis.content) {
+        console.log(`Found previous analysis in system message`);
+        setPreviousAnalysis(lastAnalysis.content);
+        setAccumulatedContent(lastAnalysis.content);
+      } else {
+        console.log(`No system message with analysis found for ${symbolRef.current}`);
+        setPreviousAnalysis('');
+        setAccumulatedContent('');
+      }
+    } catch (error) {
+      console.error(`Error loading previous analysis for ${symbolRef.current}:`, error);
+      setPreviousAnalysis('');
+      setAccumulatedContent('');
+    } finally {
+      setPreviousAnalysisLoading(false);
+    }
+  };
+
+  // Handle sending a message
   const handleSendMessage = async () => {
     if (chatInput.trim() === '' || agentLoading) return;
     
@@ -446,6 +492,7 @@ const AssistantApp: React.FC = () => {
         content: userMessage,
         timestamp: new Date().toISOString(),
         isUser: true,
+        role: 'USER', // Add role property for user messages
       };
       
       setMessages(prev => [...prev, newUserMessage]);
@@ -482,6 +529,7 @@ const AssistantApp: React.FC = () => {
         content: '<span class="assistant-prefix">Analyzing</span><div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>',
         timestamp: new Date().toISOString(),
         isUser: false,
+        role: 'ASSISTANT', // Add role property for assistant messages
         symbol: symbolRef.current
       };
       
@@ -492,17 +540,37 @@ const AssistantApp: React.FC = () => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Call the stock assistant API like in TelegramTradingApp
+      // Check if we have accumulated content from a previous analysis or need to load it
+      const analysisContent = accumulatedContent || previousAnalysis;
+      
+      // If no analysis is available, show a helpful message and suggest to run analyze first
+      if (!analysisContent) {
+        // Replace the temporary message with a helpful response
+        setMessages(prev => prev.map(msg => 
+          msg.id === tempAssistantId ? { 
+            ...msg, 
+            content: `I need to analyze ${symbolRef.current} first before I can answer questions about it. Please type "analyze" or "analyze ${symbolRef.current}" to run a technical analysis.`,
+            timestamp: new Date().toISOString()
+          } : msg
+        ));
+        
+        setAgentLoading(false);
+        setStatusMessage('');
+        return;
+      }
+      
+      // Call the stock assistant API
       const response = await fetch('/api/stock-assistant', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          analysis: accumulatedContent,  // Use accumulatedContent instead of streamingContent
+          analysis: analysisContent,
           question: userMessage,
           userId,
-          conversationHistory: updatedHistory, // Send the updated conversation history
+          symbol: symbolRef.current,
+          conversationHistory: updatedHistory
         }),
       });
       
@@ -510,6 +578,12 @@ const AssistantApp: React.FC = () => {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = errorData.message || `API error: ${response.status}`;
+        
+        // If the error is about missing analysis, trigger a new analysis and inform the user
+        if (errorData.status === 'error' && errorData.error && errorData.error.includes('No previous analysis found')) {
+          throw new Error(`I need to analyze ${symbolRef.current} first. Please type "analyze" to run a technical analysis.`);
+        }
+        
         throw new Error(errorMessage);
       }
       
@@ -522,8 +596,10 @@ const AssistantApp: React.FC = () => {
           msg.id === tempAssistantId ? { 
             ...msg, 
             id: data.messageId || tempAssistantId,
-            content: data.response, // No need for formatTechnicalAnalysis here
-            timestamp: new Date().toISOString()
+            content: formatTechnicalAnalysis(data.response),
+            rawContent: data.response,
+            timestamp: new Date().toISOString(),
+            role: 'ASSISTANT', // Ensure role is set for the final assistant message
           } : msg
         ));
         
@@ -621,20 +697,44 @@ const AssistantApp: React.FC = () => {
     viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover');
   };
 
-  // Handler for symbol search submission
-  const handleSymbolSearchSubmit = (selectedSymbol: string) => {
-    console.log('Symbol search submitted with new symbol:', selectedSymbol);
-    // Format the symbol to uppercase for better consistency
-    const formattedSymbol = selectedSymbol.toUpperCase();
-    // Update symbol
+  // Handle symbol change
+  const handleSymbolChange = (newSymbol: string) => {
+    // normalize the symbol to uppercase and trim
+    const formattedSymbol = newSymbol.trim().toUpperCase();
+    
+    // If same symbol, do nothing
+    if (formattedSymbol === symbolRef.current) {
+      setSymbolSearchOpen(false);
+      return;
+    }
+    
+    // Update the symbol state and ref
     setSymbol(formattedSymbol);
+    symbolRef.current = formattedSymbol;
+    
+    // Close the search modal
     setSymbolSearchOpen(false);
-    // Set status message to confirm symbol change
+    
+    // Update the status message for clear user feedback about the symbol change
     setStatusMessage(`Symbol changed to ${formattedSymbol}`);
+    
+    // Reset history loaded flag when changing symbols
+    historyLoadedRef.current = false;
+    
+    // Reset previous analysis
+    setPreviousAnalysis('');
+    setAccumulatedContent('');
+    
     // Reload messages for the new symbol
     setTimeout(() => loadMessageHistory(true), 100);
+    
     // Automatically trigger analysis for the new symbol
     handleAnalyze(formattedSymbol);
+  };
+
+  // Handler for symbol search submission
+  const handleSymbolSearchSubmit = (newSymbol: string) => {
+    handleSymbolChange(newSymbol);
   };
 
   // Handle automatic analysis for a symbol
@@ -666,6 +766,7 @@ const AssistantApp: React.FC = () => {
         content: '<span class="assistant-prefix">Analyzing ' + symbolToAnalyze + '</span><div class="typing-indicator"><span>.</span><span>.</span><span>.</span></div>',
         timestamp: new Date().toISOString(),
         isUser: false,
+        role: 'ASSISTANT', // Add role property for assistant messages
         symbol: symbolToAnalyze
       };
       
@@ -771,7 +872,8 @@ const AssistantApp: React.FC = () => {
                         ? { 
                             ...msg, 
                             content: formatTechnicalAnalysis(myAccumulatedContent),
-                            rawContent: myAccumulatedContent
+                            rawContent: myAccumulatedContent,
+                            role: 'ASSISTANT' // Ensure role is set when updating content
                           }
                         : msg
                     )
@@ -794,26 +896,49 @@ const AssistantApp: React.FC = () => {
         }
       }
 
-      // After streaming is complete, ensure the message has the chart URL
+      // After streaming is complete, ensure the message has the chart URL and update accumulated content
       if (myAccumulatedContent) {
         // Update the state variable one final time
         setAccumulatedContent(myAccumulatedContent);
+        setPreviousAnalysis(myAccumulatedContent);
         
-        // Final update with chart URL
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempAssistantId ? { 
-            ...msg,
-            content: formatTechnicalAnalysis(myAccumulatedContent),
-            rawContent: myAccumulatedContent,
-            chartUrl: chartUrls[0]
-          } : msg
-        ));
-        
-        // Save the final analysis result to database
+        // Save the analysis results to database
         try {
           if (myAccumulatedContent && myAccumulatedContent.trim()) {
-            await saveMessageToDatabase(myAccumulatedContent, userId, 'ASSISTANT');
-            console.log('Analysis result saved to database successfully');
+            // First save the ASSISTANT message that will be displayed to the user
+            const savedAssistantMessage = await saveMessageToDatabase(myAccumulatedContent, userId, 'ASSISTANT');
+            console.log('Analysis result saved as ASSISTANT message:', savedAssistantMessage?.id);
+            
+            // Then save the same content as a SYSTEM message for future reference
+            const savedSystemMessage = await saveMessageToDatabase(myAccumulatedContent, userId, 'SYSTEM');
+            console.log('Analysis result also saved as SYSTEM message for future reference:', savedSystemMessage?.id);
+            
+            // Update the message with the real ID if we got one back
+            if (savedAssistantMessage && savedAssistantMessage.id) {
+              setMessages(prev => prev.map(msg => 
+                msg.id === tempAssistantId ? { 
+                  ...msg,
+                  id: savedAssistantMessage.id,
+                  content: formatTechnicalAnalysis(myAccumulatedContent),
+                  rawContent: myAccumulatedContent,
+                  chartUrl: chartUrls[0],
+                  role: 'ASSISTANT'
+                } : msg
+              ));
+            } else {
+              // Update the message without changing the ID
+              setMessages(prev => prev.map(msg => 
+                msg.id === tempAssistantId ? { 
+                  ...msg,
+                  content: formatTechnicalAnalysis(myAccumulatedContent),
+                  rawContent: myAccumulatedContent,
+                  chartUrl: chartUrls[0],
+                  role: 'ASSISTANT'
+                } : msg
+              ));
+            }
+            
+            // No need to add an additional system message to the UI
           } else {
             console.warn('No content to save to database');
             if (lastUserMessageId) {
@@ -824,6 +949,17 @@ const AssistantApp: React.FC = () => {
         } catch (saveError) {
           console.error('Failed to save analysis result to database:', saveError);
           // Continue anyway - user can still see the result in UI
+          
+          // Update the message without changing the ID
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempAssistantId ? { 
+              ...msg,
+              content: formatTechnicalAnalysis(myAccumulatedContent),
+              rawContent: myAccumulatedContent,
+              chartUrl: chartUrls[0],
+              role: 'ASSISTANT'
+            } : msg
+          ));
         }
       } else {
         throw new Error('No analysis content received');
@@ -867,21 +1003,21 @@ const AssistantApp: React.FC = () => {
     }
   };
 
-  // Add an effect to handle what happens after the welcome popup is closed
+  // Remove or modify the after welcome popup effect to avoid duplicate history loading
   useEffect(() => {
     // Skip this effect during server-side rendering
     if (typeof window === 'undefined' || typeof document === 'undefined') return;
     
     // This will run whenever showWelcomePopup changes
-    if (!showWelcomePopup && appInitialized) {
-      console.log("Welcome popup closed and app initialized - loading data");
+    if (!showWelcomePopup && appInitialized && userId) {
+      console.log("Welcome popup closed and app initialized");
       
       // Make sure body scroll is restored if it was disabled
       document.body.style.overflow = '';
       
       // Small delay to ensure all state updates are processed
       setTimeout(() => {
-        // Initial message load
+        // Only load initial welcome message if there are no messages
         if (messages.length === 0) {
           let welcomeMessage = `Welcome to ChartIQ Assistant!`;
           
@@ -895,17 +1031,15 @@ const AssistantApp: React.FC = () => {
             id: `welcome-${Date.now()}`,
             content: welcomeMessage,
             timestamp: new Date().toISOString(),
-            isUser: false
+            isUser: false,
+            role: 'ASSISTANT'
           };
           
           setMessages([welcomeMsg]);
         }
-        
-        // Load history
-        loadMessageHistory(true);
-      }, 250); // Reduced delay for better responsiveness
+      }, 250);
     }
-  }, [showWelcomePopup, appInitialized, messages.length, telegramUser]);
+  }, [showWelcomePopup, appInitialized, messages.length, telegramUser, userId]);
 
   return (
     <>

@@ -19,7 +19,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow: hidden;
-  background-color: #f5f7fa; /* Updated to match app container */
+  background-color: #ffffff;
   color: #333;
   height: 100%;
   width: 100%;
@@ -44,13 +44,13 @@ code {
 
 /* Telegram Mini App specific styles */
 :root {
-  --tg-theme-bg-color: #f5f7fa;
+  --tg-theme-bg-color: #ffffff;
   --tg-theme-text-color: #333333;
   --tg-theme-hint-color: rgba(0, 0, 0, 0.5);
   --tg-theme-link-color: #5a5ef5;
   --tg-theme-button-color: #5a5ef5;
   --tg-theme-button-text-color: #ffffff;
-  --tg-theme-secondary-bg-color: #ffffff;
+  --tg-theme-secondary-bg-color: #f8f9fa;
 }
 
 /* Optimize for mobile and small screens */

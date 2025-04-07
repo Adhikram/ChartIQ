@@ -3,23 +3,23 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import AssistantApp from '../src/components/AssistantApp/AssistantApp';
 
-// Dark theme configuration for Telegram-like appearance
-const darkTheme = createTheme({
+// Light theme configuration
+const lightTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#5cabdd', // Telegram blue
+      main: '#5cabdd', // Blue
     },
     secondary: {
-      main: '#8774e1', // Nice purple for accents
+      main: '#8774e1', // Purple for accents
     },
     background: {
-      default: '#17212b', // Telegram dark background
-      paper: '#232e3c',   // Slightly lighter for cards
+      default: '#ffffff', // White background
+      paper: '#f8f9fa',   // Light gray for cards
     },
     text: {
-      primary: '#ffffff',
-      secondary: 'rgba(255, 255, 255, 0.7)',
+      primary: '#333333',
+      secondary: 'rgba(0, 0, 0, 0.7)',
     },
   },
   typography: {
@@ -32,7 +32,7 @@ const darkTheme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          backgroundColor: '#17212b',
+          backgroundColor: '#ffffff',
           height: '100%',
           overflow: 'hidden',
         },
@@ -49,7 +49,7 @@ const darkTheme = createTheme({
 
 export default function Home() {
   return (
-    <ThemeProvider theme={darkTheme}>
+    <ThemeProvider theme={lightTheme}>
       <CssBaseline />
       <AssistantApp />
     </ThemeProvider>

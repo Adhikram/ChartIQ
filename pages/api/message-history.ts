@@ -25,11 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const lastAnalysisMessage = await prisma.message.findFirst({
       where: { 
         userId,
-        role: 'ASSISTANT',
-        // Ensure it's a full analysis message (typically longer than quick responses)
-        content: {
-          contains: 'Timeframe' // A keyword likely to be in analysis messages
-        }
+        role: 'SYSTEM',
       },
       orderBy: {
         createdAt: 'desc'

@@ -121,6 +121,9 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
         // Check if this is a new message for animation
         const isNewMessage = index >= prevMessagesCountRef.current;
 
+        // Determine if this is a system message for icon selection
+        const isSystemMessage = message.role === 'SYSTEM';
+
         return (
           <Fade 
             key={message.id} 
@@ -154,9 +157,17 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
               <MessageWrapper isUser={message.isUser}>
                 {!message.isUser && (
                   <MessageAvatar isUser={false}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M22 14H21C21 10.13 17.87 7 14 7H13V5.73C13.6 5.39 14 4.74 14 4C14 2.9 13.1 2 12 2C10.9 2 10 2.9 10 4C10 4.74 10.4 5.39 11 5.73V7H10C6.13 7 3 10.13 3 14H2C1.45 14 1 14.45 1 15V18C1 18.55 1.45 19 2 19H3V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V19H22C22.55 19 23 18.55 23 18V15C23 14.45 22.55 14 22 14ZM21 17H19V20H5V17H3V16H5V14C5 11.24 7.24 9 10 9H14C16.76 9 19 11.24 19 14V16H21V17ZM8.5 13.5C7.67 13.5 7 14.17 7 15C7 15.83 7.67 16.5 8.5 16.5C9.33 16.5 10 15.83 10 15C10 14.17 9.33 13.5 8.5 13.5ZM15.5 13.5C14.67 13.5 14 14.17 14 15C14 15.83 14.67 16.5 15.5 16.5C16.33 16.5 17 15.83 17 15C17 14.17 16.33 13.5 15.5 13.5Z" fill="#333333"/>
-                    </svg>
+                    {isSystemMessage ? (
+                      // Display a database/system icon for system messages
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2C6.48 2 2 3.34 2 5V19C2 20.66 6.48 22 12 22C17.52 22 22 20.66 22 19V5C22 3.34 17.52 2 12 2ZM12 4C16.42 4 20 5.09 20 6C20 6.91 16.42 8 12 8C7.58 8 4 6.91 4 6C4 5.09 7.58 4 12 4ZM4 8.55C5.84 9.45 8.75 10 12 10C15.25 10 18.16 9.45 20 8.55V11C20 11.91 16.42 13 12 13C7.58 13 4 11.91 4 11V8.55ZM4 13.55C5.84 14.45 8.75 15 12 15C15.25 15 18.16 14.45 20 13.55V16C20 16.91 16.42 18 12 18C7.58 18 4 16.91 4 16V13.55ZM4 18.55C5.84 19.45 8.75 20 12 20C15.25 20 18.16 19.45 20 18.55V19C20 19.91 16.42 21 12 21C7.58 21 4 19.91 4 19V18.55Z" fill="#0288D1"/>
+                      </svg>
+                    ) : (
+                      // Display the standard assistant icon for regular assistant messages
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M22 14H21C21 10.13 17.87 7 14 7H13V5.73C13.6 5.39 14 4.74 14 4C14 2.9 13.1 2 12 2C10.9 2 10 2.9 10 4C10 4.74 10.4 5.39 11 5.73V7H10C6.13 7 3 10.13 3 14H2C1.45 14 1 14.45 1 15V18C1 18.55 1.45 19 2 19H3V20C3 21.1 3.9 22 5 22H19C20.1 22 21 21.1 21 20V19H22C22.55 19 23 18.55 23 18V15C23 14.45 22.55 14 22 14ZM21 17H19V20H5V17H3V16H5V14C5 11.24 7.24 9 10 9H14C16.76 9 19 11.24 19 14V16H21V17ZM8.5 13.5C7.67 13.5 7 14.17 7 15C7 15.83 7.67 16.5 8.5 16.5C9.33 16.5 10 15.83 10 15C10 14.17 9.33 13.5 8.5 13.5ZM15.5 13.5C14.67 13.5 14 14.17 14 15C14 15.83 14.67 16.5 15.5 16.5C16.33 16.5 17 15.83 17 15C17 14.17 16.33 13.5 15.5 13.5Z" fill="#333333"/>
+                      </svg>
+                    )}
                   </MessageAvatar>
                 )}
                 
@@ -244,7 +255,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
                         },
                         '& .assistant-prefix': {
                           fontWeight: 'bold',
-                          color: '#10a37f',
+                          color: isSystemMessage ? '#0288D1' : '#10a37f', // Different color for system messages
                           marginBottom: '0.5rem',
                           display: 'block',
                         },
@@ -285,6 +296,16 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
                   
                   <TimeStamp>
                     {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    {isSystemMessage && (
+                      <span style={{ 
+                        marginLeft: '5px', 
+                        fontSize: '0.7rem', 
+                        color: '#0288D1', 
+                        fontWeight: 'bold' 
+                      }}>
+                        SYSTEM
+                      </span>
+                    )}
                   </TimeStamp>
                 </MessageContainer>
                 

@@ -6,6 +6,7 @@ export interface ChatMessage {
   isUser: boolean;
   symbol?: string;
   chartUrl?: string;
+  role?: 'USER' | 'ASSISTANT' | 'SYSTEM';
 }
 
 export interface ConversationMessage {
