@@ -76,7 +76,25 @@ export const useAnalysis = (): AnalysisResult => {
     }
   }, []);
 
-  // Handle automatic analysis for a symbol
+  // Add helper function for generating a single chart
+  const generateChart = async (symbol: string, interval: string): Promise<string> => {
+    const response = await fetch('/api/generate-chart', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ symbol, interval })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to generate ${interval} chart: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data.chartUrl;
+  };
+
+  // Update handleAnalyze function
   const handleAnalyze = async (
     symbolToAnalyze: string, 
     userId: string,
@@ -121,44 +139,39 @@ export const useAnalysis = (): AnalysisResult => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Step 1: Generate charts first
-      console.log('Generating charts for symbol:', symbolToAnalyze);
-      setStatusMessage(`Generating charts for ${symbolToAnalyze}...`);
+      // Generate charts sequentially
+      const chartUrls: string[] = [];
+      const intervalMap = {
+        // 'Hourly': '60',
+        // '4 Hourly': '240',
+        'Daily': 'D'
+      };
       
-      const generateChartsResponse = await fetch('/api/generate-charts', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ symbol: symbolToAnalyze })
-      });
-      
-      if (!generateChartsResponse.ok) {
-        const errorText = await generateChartsResponse.text();
-        console.error('Error response from generate-charts:', errorText);
-        throw new Error(`Error generating charts: ${generateChartsResponse.status} - ${errorText}`);
+        for (const interval of Object.keys(intervalMap)) {
+        setStatusMessage(`Generating ${interval} chart for ${symbolToAnalyze}...`);
+        try {
+          const chartUrl = await generateChart(symbolToAnalyze, intervalMap[interval as keyof typeof intervalMap]);
+          chartUrls.push(chartUrl);
+          console.log(`Generated ${interval} chart:`, chartUrl);
+        } catch (error) {
+          console.error(`Error generating ${interval} chart:`, error);
+          throw error;
+        }
       }
       
-      const chartsData = await generateChartsResponse.json();
-      console.log('Generated charts:', chartsData);
+      // Step 2: Now analyze the charts with the chartUrls
+      setStatusMessage(`Analyzing ${symbolToAnalyze} across multiple timeframes...`);
       
-      if (!chartsData.chartUrls || chartsData.chartUrls.length === 0) {
-        throw new Error('No chart URLs generated. Please try again.');
-      }
-      
-      // Step 2: Now analyze the charts with the chartUrls from step 1
-      setStatusMessage(`Analyzing ${symbolToAnalyze}...`);
-      
-      // Prepare the request with the same format as TelegramTradingApp
+      // Prepare the request with the chartUrls
       const requestData = {
-        chartUrls: chartsData.chartUrls,
+        chartUrls,
         symbol: symbolToAnalyze,
         userId
       };
       
       console.log('Sending analyze-charts request:', requestData);
       
-      // Call analyze-charts instead of assistant API
+      // Call analyze-charts
       const response = await fetch('/api/analyze-charts', {
         method: 'POST',
         headers: {
@@ -180,14 +193,12 @@ export const useAnalysis = (): AnalysisResult => {
       // Reset accumulated content
       setAccumulatedContent('');
       let myAccumulatedContent = '';
-      let chartUrls: string[] = chartsData.chartUrls;
-      const decoder = new TextDecoder();
       
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         
-        const chunk = decoder.decode(value);
+        const chunk = new TextDecoder().decode(value);
         console.log('Received chunk:', chunk);
         
         // Process each line (which should be in format "data: {...}")

@@ -1,15 +1,3 @@
-// Add TypeScript declarations at the top of the file
-// declare global {
-//   interface Window {
-//     Telegram?: {
-//       WebApp?: any;
-//       TelegramGameProxy?: {
-//         receiveEvent?: (eventName: string, eventData?: any) => void;
-//       };
-//     };
-//   }
-// }
-
 import React, { useRef, useEffect, useState, useLayoutEffect, useCallback } from 'react';
 import { Box } from '@mui/material';
 import { AppContainer, GlobalStyle } from './styles';

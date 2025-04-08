@@ -61,6 +61,7 @@ const AssistantApp: React.FC = () => {
 
   // Check if we're in Telegram environment
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const isTelegramWebApp = window.Telegram?.WebApp !== undefined;
     setIsFromTelegram(isTelegramWebApp);
     

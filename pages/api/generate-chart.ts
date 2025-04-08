@@ -132,25 +132,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { symbol, interval } = req.body;
+  const { symbol, interval = '60' } = req.body;
 
   if (!symbol) {
     return res.status(400).json({ error: 'Symbol is required' });
   }
 
   try {
-    // Only process one chart at a time to reduce server load
-    const url = `https://adhi1.btc.cfd/chart?symbol=${symbol}&interval=${interval}`;
-
+    const url = `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=${interval}`;
     const screenshotUrl = await generateScreenshot(url, symbol, interval);
-    
-
     
     res.json({ chartUrl: screenshotUrl });
   } catch (error) {
-    console.error('Error generating charts:', error);
+    console.error('Error generating chart:', error);
     res.status(500).json({ 
-      error: 'Failed to generate charts',
+      error: 'Failed to generate chart',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
