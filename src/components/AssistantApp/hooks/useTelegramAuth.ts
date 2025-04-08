@@ -31,11 +31,13 @@ export const useTelegramAuth = (): TelegramAuthResult => {
   const [isAuthValid, setIsAuthValid] = useState<boolean | null>(null);
   const [isValidating, setIsValidating] = useState<boolean>(true);
 
+  // Main authentication effect that runs once on mount
   useEffect(() => {
     // Skip this effect during server-side rendering
     if (typeof window === 'undefined') return;
     
     console.log("Initial auth setup - checking environment");
+    let didAuthenticate = false;
     
     try {
       // Simple rule: if tgWebAppData is in URL, use it to get user data
@@ -62,6 +64,7 @@ export const useTelegramAuth = (): TelegramAuthResult => {
         
         // Set authentication as valid since it came from Telegram
         setIsAuthValid(true);
+        didAuthenticate = true;
       } 
       // If no data in URL, check for Telegram WebApp object
       else {
@@ -89,13 +92,20 @@ export const useTelegramAuth = (): TelegramAuthResult => {
             
             // Set authentication as valid
             setIsAuthValid(true);
+            didAuthenticate = true;
           } else {
             console.warn("No Telegram user data available");
             
             // Use fallback user ID for development/testing
             console.log("Using default user ID: user123");
             setUserId(DEFAULT_USER_ID);
+            setIsAuthValid(false);
           }
+        } else {
+          // Not in Telegram environment
+          console.log("Not in Telegram environment, using default user ID");
+          setUserId(DEFAULT_USER_ID);
+          setIsAuthValid(false);
         }
       }
     } catch (error) {
@@ -104,10 +114,49 @@ export const useTelegramAuth = (): TelegramAuthResult => {
       // Fallback for development/testing
       console.log("Using default user ID due to error: user123");
       setUserId(DEFAULT_USER_ID);
+      setIsAuthValid(false);
     } finally {
+      if (!didAuthenticate) {
+        console.log("No Telegram authentication was successful, using default user ID");
+      }
       setIsValidating(false);
     }
   }, []);
+
+  // Secondary effect to watch for WebApp changes in case it initializes after component mount
+  useEffect(() => {
+    // Skip during SSR or if we've already authenticated
+    if (typeof window === 'undefined' || isAuthValid === true) return;
+    
+    // Define a function to check Telegram WebApp
+    const checkTelegramWebApp = () => {
+      // If WebApp becomes available and we haven't already authenticated
+      if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
+        const user = window.Telegram.WebApp.initDataUnsafe.user;
+        console.log("Detected Telegram WebApp user after initial load:", user);
+        
+        setTelegramUser(user);
+        setIsFromTelegram(true);
+        
+        if (user.id) {
+          const formattedUserId = formatTelegramUserId(user.id);
+          console.log(`Setting delayed Telegram user ID: ${formattedUserId}`);
+          setUserId(formattedUserId);
+        }
+        
+        setIsAuthValid(true);
+      }
+    };
+    
+    // Check once
+    checkTelegramWebApp();
+    
+    // Set up an interval to periodically check for WebApp
+    const interval = setInterval(checkTelegramWebApp, 1000);
+    
+    // Clean up interval
+    return () => clearInterval(interval);
+  }, [isAuthValid]);
 
   // Handle Telegram user ID setting in a separate effect with proper dependency
   useEffect(() => {

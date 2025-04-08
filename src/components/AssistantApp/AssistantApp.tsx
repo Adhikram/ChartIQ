@@ -19,7 +19,6 @@ import {
   AppHeader, 
   ChatInput, 
   ChatMessages, 
-  WelcomePopup,
   SymbolSearchModal
 } from './components';
 
@@ -56,9 +55,8 @@ const AssistantApp: React.FC = () => {
   const [agentLoading, setAgentLoading] = useState<boolean>(false);
   const [symbolSearchOpen, setSymbolSearchOpen] = useState<boolean>(false);
   
-  // Welcome popup state
-  const [showWelcomePopup, setShowWelcomePopup] = useState<boolean>(false);
-  const [appInitialized, setAppInitialized] = useState<boolean>(false);
+  // App initialization state
+  const [appInitialized, setAppInitialized] = useState<boolean>(true);
   
   // Refs
   const symbolRef = useRef<string>(symbol);
@@ -98,9 +96,9 @@ const AssistantApp: React.FC = () => {
   // Use the viewport hook
   useViewport();
   
-  // Use the welcome message hook
+  // Use the welcome message hook with modified parameters
   useWelcomeMessage(
-    showWelcomePopup,
+    false, // Never show welcome popup
     appInitialized,
     userId,
     messages,
@@ -113,91 +111,75 @@ const AssistantApp: React.FC = () => {
     symbolRef.current = symbol;
   }, [symbol]);
 
-  // // Check if we're in Telegram environment - THIS RUNS ONCE ON COMPONENT MOUNT
-  // useEffect(() => {
-  //   // Skip this effect during server-side rendering
-  //   if (typeof window === 'undefined') return;
-    
-  //   console.log("Initial app setup - checking environment");
-    
-  //   // Safely check for TelegramGameProxy and handle it properly
-  //   if (window?.Telegram?.TelegramGameProxy?.receiveEvent) {
-  //     try {
-  //       // Send an initialization event if needed
-  //       window.Telegram.TelegramGameProxy.receiveEvent('init');
-  //     } catch (error) {
-  //       console.error("Error with TelegramGameProxy:", error);
-  //     }
-  //   }
-    
-  //   // Now that we've checked the environment, show the welcome popup
-  //   setShowWelcomePopup(true);
-  // }, []);
-
-  // // Use isomorphic layout effect instead of useLayoutEffect to ensure welcome popup state changes are applied immediately
-  // useIsomorphicLayoutEffect(() => {
-  //   // Skip this effect during server-side rendering
-  //   if (typeof window === 'undefined') return;
-    
-  //   // This will run synchronously after all DOM mutations
-  //   if (showWelcomePopup === false) {
-  //     console.log("Layout effect: Welcome popup should be hidden now");
-  //     // Force DOM update to ensure modal is removed
-  //     rerender();
-  //   }
-  // }, [showWelcomePopup, rerender]);
-
-  // Modify the handleContinue function to ensure modal closes properly
-  const handleContinue = () => {
-    console.log("Continue button clicked, hiding welcome popup");
-    
-    try {
-      // Update state immediately (force synchronous update)
-      document.body.style.overflow = ''; // Restore scroll if needed
-      setShowWelcomePopup(false);
-      setAppInitialized(true);
-      
-      // Debug state changes
-      console.log("Set states: showWelcomePopup=false, appInitialized=true");
-      
-      // Force re-render to ensure UI updates
-      rerender();
-      
-      // Notify Telegram the app is ready if from Telegram
-      if (isFromTelegram && typeof window !== 'undefined') {
-        try {
-          // Safely check for WebApp API methods
-          if (window.Telegram?.WebApp) {
-            if (typeof window.Telegram.WebApp.ready === 'function') {
-              window.Telegram.WebApp.ready();
-            }
-            
-            // Expand the WebApp if authentication is valid
-            if (isAuthValid && typeof window.Telegram.WebApp.expand === 'function') {
-              window.Telegram.WebApp.expand();
-            }
-          }
-        } catch (telegramError) {
-          console.error("Error in Telegram WebApp API:", telegramError);
-        }
-      }
-    } catch (error) {
-      console.error("Error in handleContinue:", error);
-      // Fallback direct state update
-      setShowWelcomePopup(false);
-      rerender();
-    }
-  };
-
-  // Consolidated effect to load both message history and previous analysis only ONCE
-  // This fixes the issue with multiple redundant API calls
+  // Initialize app and handle authentication
   useEffect(() => {
     // Skip this effect during server-side rendering
     if (typeof window === 'undefined') return;
     
-    // Only proceed if app is initialized, we have a userId, and we haven't loaded yet
-    if (appInitialized && userId && !initialLoadCompletedRef.current) {
-      console.log("CONSOLIDATED: Loading initial data - both message history and analysis");
+    // Wait for authentication to complete
+    if (isValidating) {
+      console.log("Waiting for authentication to complete...");
+      return;
+    }
+    
+    console.log("Authentication completed:", { 
+      userId, 
+      isAuthValid, 
+      isDefaultUser: userId === 'user123',
+      isFromTelegram 
+    });
+    
+    // Only initialize if we have a valid user ID (not the default)
+    if (!appInitialized) {
+      if (userId !== 'user123') {
+        console.log(`Initializing app with valid user ID: ${userId}`);
+        setAppInitialized(true);
+      } else {
+        console.log("Using default user ID, waiting for valid authentication...");
+        // Check if we're in development mode where default user is expected
+        if (process.env.NODE_ENV === 'development') {
+          console.log("Development mode detected, initializing with default user");
+          setAppInitialized(true);
+        }
+      }
+    }
+    
+    // Notify Telegram the app is ready if from Telegram
+    if (isFromTelegram && typeof window !== 'undefined') {
+      try {
+        // Safely check for WebApp API methods
+        if (window.Telegram?.WebApp) {
+          if (typeof window.Telegram.WebApp.ready === 'function') {
+            window.Telegram.WebApp.ready();
+          }
+          
+          // Expand the WebApp if authentication is valid
+          if (isAuthValid && typeof window.Telegram.WebApp.expand === 'function') {
+            window.Telegram.WebApp.expand();
+          }
+        }
+      } catch (telegramError) {
+        console.error("Error in Telegram WebApp API:", telegramError);
+      }
+    }
+  }, [isFromTelegram, isAuthValid, isValidating, userId, appInitialized]);
+
+  // Consolidated effect to load both message history and previous analysis
+  // Dependent on appInitialized and userId to ensure auth is complete
+  useEffect(() => {
+    // Skip this effect during server-side rendering
+    if (typeof window === 'undefined') return;
+    
+    // Only proceed if app is initialized, we have a userId, auth is complete, and we haven't loaded yet
+    if (appInitialized && userId && !isValidating && !initialLoadCompletedRef.current) {
+      // Skip loading if we're using the default user ID (authentication failed)
+      if (userId === 'user123') {
+        console.log("Skipping data load for default user ID");
+        initialLoadCompletedRef.current = true;
+        return;
+      }
+      
+      console.log(`CONSOLIDATED: Loading initial data - both message history and analysis for user: ${userId}`);
       
       // Mark as loaded to prevent duplicate calls
       initialLoadCompletedRef.current = true;
@@ -216,7 +198,7 @@ const AssistantApp: React.FC = () => {
           initialLoadCompletedRef.current = false; // Allow retry on error
         });
     }
-  }, [appInitialized, userId, symbol, loadMessageHistory, loadPreviousAnalysis]);
+  }, [appInitialized, userId, symbol, loadMessageHistory, loadPreviousAnalysis, isValidating]);
 
   // Add scroll detection for loading more messages
   useEffect(() => {
@@ -288,9 +270,17 @@ const AssistantApp: React.FC = () => {
     // Update the status message for clear user feedback about the symbol change
     setStatusMessage(`Symbol changed to ${formattedSymbol}`);
     
+    // Skip loading if we're using the default user ID or if auth is not complete
+    if (userId === 'user123' || isValidating) {
+      console.log("Skipping data load for symbol change - using default user ID or authentication incomplete");
+      return;
+    }
+    
     // Reset history loaded flag when changing symbols
     historyLoadedRef.current = false;
     initialLoadCompletedRef.current = false;
+    
+    console.log(`Loading data for symbol change to ${formattedSymbol} for user ${userId}`);
     
     // Consolidated: Load both history and analysis for the new symbol
     // First load message history
@@ -319,16 +309,6 @@ const AssistantApp: React.FC = () => {
     <>
       <GlobalStyle />
       <AppContainer>
-        {/* Welcome Popup */}
-        <WelcomePopup
-          open={showWelcomePopup}
-          onClose={handleContinue}
-          telegramUser={telegramUser}
-          isFromTelegram={isFromTelegram}
-          isAuthValid={isAuthValid}
-          userId={userId}
-        />
-        
         {/* App Header */}
         <AppHeader 
           symbol={symbol}
