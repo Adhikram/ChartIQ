@@ -2,10 +2,11 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost'],
+    domains: ['localhost', 'adhi1.btc.cfd'],
   },
   experimental: {
-    // Empty but kept for potential future options
+    // Enable WebSocket support
+    webpackBuildWorker: true,
   },
   // Add proper server external packages config
   serverExternalPackages: ['puppeteer'],

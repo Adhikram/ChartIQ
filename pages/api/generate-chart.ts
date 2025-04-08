@@ -28,9 +28,21 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
     });
     
     const page = await browser.newPage();
+    
+    // Reduce resource usage
+    // await page.setRequestInterception(true);
+    // page.on('request', (req) => {
+    //   const resourceType = req.resourceType();
+    //   // Block unnecessary resources
+    //   if (['image', 'stylesheet', 'font', 'media'].includes(resourceType)) {
+    //     req.abort();
+    //   } else {
+    //     req.continue();
+    //   }
+    // });
 
-    // Set a longer timeout for navigation (30 seconds)
-    page.setDefaultNavigationTimeout(30000);
+    // Set a longer timeout for navigation (60 seconds)
+    page.setDefaultNavigationTimeout(60000);
 
     // Set a small viewport size for faster rendering
     await page.setViewport({ width: 1920, height: 1080 });
@@ -51,6 +63,11 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
     
     // Wait for TradingView widget container to be visible
     try {
+      await page.waitForSelector('.tradingview-widget-container', { 
+        visible: true,
+        timeout: 30000 
+      });
+      
       // Add a script to detect when the TradingView chart is fully loaded
       await page.evaluate(() => {
         return new Promise((resolve) => {
@@ -115,7 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { symbol } = req.body;
+  const { symbol, interval } = req.body;
 
   if (!symbol) {
     return res.status(400).json({ error: 'Symbol is required' });
@@ -123,17 +140,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // Only process one chart at a time to reduce server load
-    const urls = [
-      { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=60`, interval: '1hr' },
-      // { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=240`, interval: '4hr' },
-      // { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=D`, interval: '1d' },
-    ];
+    const url = `https://adhi1.btc.cfd/chart?symbol=${symbol}&interval=${interval}`;
 
-    const screenshotUrls = await Promise.all(urls.map(url => generateScreenshot(url.url, symbol, url.interval)));
+    const screenshotUrl = await generateScreenshot(url, symbol, interval);
     
 
     
-    res.json({ chartUrls: screenshotUrls });
+    res.json({ chartUrl: screenshotUrl });
   } catch (error) {
     console.error('Error generating charts:', error);
     res.status(500).json({ 

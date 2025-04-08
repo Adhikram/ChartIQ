@@ -28,10 +28,10 @@
     "web-vitals": "^3.5.2"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=3100 next dev",
     "build": "next build",
-    "start": "next start",
-    "start:prod": "next build && next start",
+    "start": "PORT=3100 next start",
+    "start:prod": "NEXT_IGNORE_ESLINT=true next build && PORT=3100 next start",
     "lint": "next lint",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
