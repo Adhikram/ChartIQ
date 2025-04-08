@@ -128,20 +128,10 @@ const AssistantApp: React.FC = () => {
       isDefaultUser: userId === 'user123',
       isFromTelegram 
     });
-    
+
     // Only initialize if we have a valid user ID (not the default)
     if (!appInitialized) {
-      if (userId !== 'user123') {
-        console.log(`Initializing app with valid user ID: ${userId}`);
-        setAppInitialized(true);
-      } else {
-        console.log("Using default user ID, waiting for valid authentication...");
-        // Check if we're in development mode where default user is expected
-        if (process.env.NODE_ENV === 'development') {
-          console.log("Development mode detected, initializing with default user");
-          setAppInitialized(true);
-        }
-      }
+      setAppInitialized(true);
     }
     
     // Notify Telegram the app is ready if from Telegram
@@ -173,11 +163,11 @@ const AssistantApp: React.FC = () => {
     // Only proceed if app is initialized, we have a userId, auth is complete, and we haven't loaded yet
     if (appInitialized && userId && !isValidating && !initialLoadCompletedRef.current) {
       // Skip loading if we're using the default user ID (authentication failed)
-      if (userId === 'user123') {
-        console.log("Skipping data load for default user ID");
-        initialLoadCompletedRef.current = true;
-        return;
-      }
+      // if (userId === 'user123') {
+      //   console.log("Skipping data load for default user ID");
+      //   initialLoadCompletedRef.current = true;
+      //   return;
+      // }
       
       console.log(`CONSOLIDATED: Loading initial data - both message history and analysis for user: ${userId}`);
       
@@ -269,12 +259,6 @@ const AssistantApp: React.FC = () => {
     
     // Update the status message for clear user feedback about the symbol change
     setStatusMessage(`Symbol changed to ${formattedSymbol}`);
-    
-    // Skip loading if we're using the default user ID or if auth is not complete
-    if (userId === 'user123' || isValidating) {
-      console.log("Skipping data load for symbol change - using default user ID or authentication incomplete");
-      return;
-    }
     
     // Reset history loaded flag when changing symbols
     historyLoadedRef.current = false;
