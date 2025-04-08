@@ -1,14 +1,14 @@
 // Add TypeScript declarations at the top of the file
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp?: any;
-      TelegramGameProxy?: {
-        receiveEvent?: (eventName: string, eventData?: any) => void;
-      };
-    };
-  }
-}
+// declare global {
+//   interface Window {
+//     Telegram?: {
+//       WebApp?: any;
+//       TelegramGameProxy?: {
+//         receiveEvent?: (eventName: string, eventData?: any) => void;
+//       };
+//     };
+//   }
+// }
 
 import React, { useRef, useEffect, useState, useLayoutEffect, useCallback } from 'react';
 import { Box } from '@mui/material';
@@ -113,39 +113,39 @@ const AssistantApp: React.FC = () => {
     symbolRef.current = symbol;
   }, [symbol]);
 
-  // Check if we're in Telegram environment - THIS RUNS ONCE ON COMPONENT MOUNT
-  useEffect(() => {
-    // Skip this effect during server-side rendering
-    if (typeof window === 'undefined') return;
+  // // Check if we're in Telegram environment - THIS RUNS ONCE ON COMPONENT MOUNT
+  // useEffect(() => {
+  //   // Skip this effect during server-side rendering
+  //   if (typeof window === 'undefined') return;
     
-    console.log("Initial app setup - checking environment");
+  //   console.log("Initial app setup - checking environment");
     
-    // Safely check for TelegramGameProxy and handle it properly
-    if (window?.Telegram?.TelegramGameProxy?.receiveEvent) {
-      try {
-        // Send an initialization event if needed
-        window.Telegram.TelegramGameProxy.receiveEvent('init');
-      } catch (error) {
-        console.error("Error with TelegramGameProxy:", error);
-      }
-    }
+  //   // Safely check for TelegramGameProxy and handle it properly
+  //   if (window?.Telegram?.TelegramGameProxy?.receiveEvent) {
+  //     try {
+  //       // Send an initialization event if needed
+  //       window.Telegram.TelegramGameProxy.receiveEvent('init');
+  //     } catch (error) {
+  //       console.error("Error with TelegramGameProxy:", error);
+  //     }
+  //   }
     
-    // Now that we've checked the environment, show the welcome popup
-    setShowWelcomePopup(true);
-  }, []);
+  //   // Now that we've checked the environment, show the welcome popup
+  //   setShowWelcomePopup(true);
+  // }, []);
 
-  // Use isomorphic layout effect instead of useLayoutEffect to ensure welcome popup state changes are applied immediately
-  useIsomorphicLayoutEffect(() => {
-    // Skip this effect during server-side rendering
-    if (typeof window === 'undefined') return;
+  // // Use isomorphic layout effect instead of useLayoutEffect to ensure welcome popup state changes are applied immediately
+  // useIsomorphicLayoutEffect(() => {
+  //   // Skip this effect during server-side rendering
+  //   if (typeof window === 'undefined') return;
     
-    // This will run synchronously after all DOM mutations
-    if (showWelcomePopup === false) {
-      console.log("Layout effect: Welcome popup should be hidden now");
-      // Force DOM update to ensure modal is removed
-      rerender();
-    }
-  }, [showWelcomePopup, rerender]);
+  //   // This will run synchronously after all DOM mutations
+  //   if (showWelcomePopup === false) {
+  //     console.log("Layout effect: Welcome popup should be hidden now");
+  //     // Force DOM update to ensure modal is removed
+  //     rerender();
+  //   }
+  // }, [showWelcomePopup, rerender]);
 
   // Modify the handleContinue function to ensure modal closes properly
   const handleContinue = () => {
