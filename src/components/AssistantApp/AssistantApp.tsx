@@ -43,9 +43,6 @@ const AssistantApp: React.FC = () => {
   const [agentLoading, setAgentLoading] = useState<boolean>(false);
   const [symbolSearchOpen, setSymbolSearchOpen] = useState<boolean>(false);
   
-  // App initialization state
-  const [appInitialized, setAppInitialized] = useState<boolean>(true);
-  
   // Refs
   const symbolRef = useRef<string>(symbol);
   const messageEndRef = useRef<HTMLDivElement>(null);
@@ -87,7 +84,7 @@ const AssistantApp: React.FC = () => {
   // Use the welcome message hook with modified parameters
   useWelcomeMessage(
     false, // Never show welcome popup
-    appInitialized,
+    !!userId && !isValidating, // App is ready when we have a user and validation is done
     userId,
     messages,
     telegramUser,
@@ -117,11 +114,6 @@ const AssistantApp: React.FC = () => {
       isFromTelegram 
     });
 
-    // Only initialize if we have a valid user ID (not the default)
-    if (!appInitialized) {
-      setAppInitialized(true);
-    }
-    
     // Notify Telegram the app is ready if from Telegram
     if (isFromTelegram && typeof window !== 'undefined') {
       try {
@@ -140,28 +132,22 @@ const AssistantApp: React.FC = () => {
         console.error("Error in Telegram WebApp API:", telegramError);
       }
     }
-  }, [isFromTelegram, isAuthValid, isValidating, userId, appInitialized]);
+  }, [isFromTelegram, isAuthValid, isValidating, userId]);
 
   // Consolidated effect to load both message history and previous analysis
-  // Dependent on appInitialized and userId to ensure auth is complete
+  // Dependent on userId and validation status to ensure auth is complete
   useEffect(() => {
     // Skip this effect during server-side rendering
     if (typeof window === 'undefined') return;
     
-    // Only proceed if app is initialized, we have a userId, auth is complete, and we haven't loaded yet
-    if (appInitialized && userId && !isValidating && !initialLoadCompletedRef.current) {
-      // Skip loading if we're using the default user ID (authentication failed)
-      // if (userId === 'user123') {
-      //   console.log("Skipping data load for default user ID");
-      //   initialLoadCompletedRef.current = true;
-      //   return;
-      // }
+    // Only proceed if we have a userId, auth is complete, and we haven't loaded yet
+    if (userId && !isValidating && !initialLoadCompletedRef.current) {
+      // Removed check for default user ID to allow loading for all users
       
       console.log(`CONSOLIDATED: Loading initial data - both message history and analysis for user: ${userId}`);
       
-      // Mark as loaded to prevent duplicate calls
-      initialLoadCompletedRef.current = true;
-      historyLoadedRef.current = true;
+      // Mark history as loaded temporarily (might be redundant if initialLoad handles it)
+      historyLoadedRef.current = true; 
       
       // Load messages first - this should use chat-message API internally
       // and never load UI messages from message-history API
@@ -171,12 +157,20 @@ const AssistantApp: React.FC = () => {
           // This should only fetch the analysis content, not affect UI messages
           return loadPreviousAnalysis(userId, symbol);
         })
+        .then(() => {
+          // Successfully loaded both history and analysis
+          console.log(`CONSOLIDATED: Successfully loaded initial data for user: ${userId}`);
+          // Mark as fully loaded *only* after successful completion
+          initialLoadCompletedRef.current = true; 
+        })
         .catch(error => {
           console.error("Error during initial data load:", error);
-          initialLoadCompletedRef.current = false; // Allow retry on error
+          // Reset the flag on error to allow retry on subsequent renders/changes
+          initialLoadCompletedRef.current = false; 
+          historyLoadedRef.current = false; // Also reset history flag if load failed
         });
     }
-  }, [appInitialized, userId, symbol, loadMessageHistory, loadPreviousAnalysis, isValidating]);
+  }, [userId, symbol, loadMessageHistory, loadPreviousAnalysis, isValidating]);
 
   // Add scroll detection for loading more messages
   useEffect(() => {

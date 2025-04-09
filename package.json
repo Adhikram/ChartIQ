@@ -9,6 +9,7 @@
     "@langchain/core": "^0.3.43",
     "@langchain/openai": "^0.5.2",
     "@mui/material": "^5.15.10",
+    "@paralleldrive/cuid2": "^2.2.2",
     "@prisma/client": "^5.10.0",
     "@types/node": "^20.11.19",
     "@types/pg": "^8.11.11",

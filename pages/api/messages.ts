@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import db, { Message } from '../../src/db/service';
+import { createId } from '@paralleldrive/cuid2';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle different HTTP methods
@@ -32,10 +33,13 @@ async function handlePostMessage(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Missing required field: role must be a string' });
     }
 
+    // Generate a new CUID for the message
+    const newId = createId();
+
     // Create message
     const result = await db.query(
-      'INSERT INTO "Message" (content, "userId", role) VALUES ($1, $2, $3) RETURNING *',
-      [content, userId, role]
+      'INSERT INTO "Message" (id, content, "userId", role) VALUES ($1, $2, $3, $4) RETURNING *',
+      [newId, content, userId, role]
     );
 
     return res.status(201).json(result.rows[0]);
