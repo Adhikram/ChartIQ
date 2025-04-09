@@ -1,14 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import prisma from '../../prisma/getPrismaClient';
-import { Role } from '@prisma/client';
+import db, { Message } from '../../src/db/service';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Handle different HTTP methods
   switch (req.method) {
     case 'POST':
       return handlePostMessage(req, res);
+    case 'DELETE':
+      return handleDeleteMessage(req, res);
     default:
-      res.setHeader('Allow', ['POST']);
+      res.setHeader('Allow', ['POST', 'DELETE']);
       return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 }
@@ -19,7 +20,7 @@ async function handlePostMessage(req: NextApiRequest, res: NextApiResponse) {
     const { content, userId, role } = req.body;
     
     // Validate required fields with more detailed errors
-    if (!content || typeof content !== 'string' || !content.trim()) {
+    if (!content || !content.trim()) {
       return res.status(400).json({ error: 'Missing required field: content must be a non-empty string' });
     }
     
@@ -31,18 +32,42 @@ async function handlePostMessage(req: NextApiRequest, res: NextApiResponse) {
       return res.status(400).json({ error: 'Missing required field: role must be a string' });
     }
 
-    // Create the message in the database
-    const message = await prisma.message.create({
-      data: {
-        content,
-        userId,
-        role: role as Role, 
-      },
-    });
+    // Create message
+    const result = await db.query(
+      'INSERT INTO "Message" (content, "userId", role) VALUES ($1, $2, $3) RETURNING *',
+      [content, userId, role]
+    );
 
-    return res.status(201).json(message);
+    return res.status(201).json(result.rows[0]);
   } catch (error) {
-    console.error('Error creating message:', error);
+    console.error('Failed to create message:', error);
     return res.status(500).json({ error: 'Failed to create message' });
+  }
+}
+
+// Handle DELETE request to remove a message
+async function handleDeleteMessage(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    const { messageId } = req.query;
+    
+    // Validate required fields
+    if (!messageId || typeof messageId !== 'string') {
+      return res.status(400).json({ error: 'Missing required field: messageId must be a string' });
+    }
+
+    // Delete message
+    const result = await db.query(
+      'DELETE FROM "Message" WHERE id = $1',
+      [messageId]
+    );
+
+    if (result.rowCount > 0) {
+      return res.status(200).json({ success: true, message: 'Message deleted successfully' });
+    } else {
+      return res.status(404).json({ success: false, error: 'Message not found or not removed' });
+    }
+  } catch (error) {
+    console.error('Failed to delete message:', error);
+    return res.status(500).json({ error: 'Failed to delete message' });
   }
 } 

@@ -1,5 +1,15 @@
-import { Role } from '@prisma/client';
-import { Message } from '@prisma/client';
+// Define types locally instead of importing from Prisma
+export type Role = 'USER' | 'ASSISTANT' | 'SYSTEM';
+
+export interface Message {
+  id: string;
+  userId: string | null;
+  content: string;
+  role: Role;
+  createdAt: Date;
+}
+
+import db from '../db/service';
 
 export const formatTechnicalAnalysis = (content: string): string => {
   // Don't attempt to format if content is empty or null
@@ -102,15 +112,72 @@ export const saveMessageToDatabase = async (message: string, userId: string, rol
 };
 
 export const removeLastUserMessage = async (messageId: string) => {
+  if (!messageId) {
+    console.error('Cannot remove message with null ID');
+    return false;
+  }
+  
   try {
-    const response = await fetch(`/api/messages/${messageId}`, {
+    const response = await fetch(`/api/messages?messageId=${messageId}&role=USER`, {
       method: 'DELETE',
     });
-
-    if (!response.ok) {
-      throw new Error(`Failed to delete message: ${response.status}`);
+    
+    if (response.ok) {
+      console.log('Message removed successfully');
+      return true;
+    } else {
+      console.error('Message not found or not removed');
+      return false;
     }
   } catch (error) {
     console.error('Failed to remove message:', error);
+    return false;
   }
 };
+
+
+export const getMessageHistory = async (userId: string): Promise<Message[]> => {
+  try {
+    const response = await fetch(`/api/message-history?userId=${userId}`);
+    const data = await response.json();
+    return data.messages;
+  } catch (error) {
+    console.error('Failed to get message history:', error);
+    return [];
+  }
+};
+
+export const getChatHistory = async (userId: string): Promise<Message[]> => {
+  try {
+    const response = await fetch(`/api/chat-message?userId=${userId}`);
+    const data = await response.json();
+    return data.messages;
+  } catch (error) {
+    console.error('Failed to get chat history:', error);
+    return [];
+  }
+};
+
+export const getLastAnalysisMessage = async (userId: string): Promise<Message | null> => {
+  try {
+    const response = await fetch(`/api/message-history?userId=${userId}`);
+    const data = await response.json();
+    return data.lastAnalysis[0];
+  } catch (error) {
+    console.error('Failed to get message history:', error);
+    return null;
+  }
+};
+
+export const getConversationHistory = async (userId: string): Promise<Message[]> => {
+  try {
+    const response = await fetch(`/api/message-history?userId=${userId}`);
+    const data = await response.json();
+    return data.conversationHistory;
+  } catch (error) {
+    console.error('Failed to get conversation history:', error);
+    return [];
+  }
+};
+
+

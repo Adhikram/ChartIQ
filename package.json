@@ -11,6 +11,7 @@
     "@mui/material": "^5.15.10",
     "@prisma/client": "^5.10.0",
     "@types/node": "^20.11.19",
+    "@types/pg": "^8.11.11",
     "@types/react": "^18.3.20",
     "@types/react-dom": "^18.3.6",
     "axios": "^1.6.7",
@@ -18,6 +19,7 @@
     "llmonitor": "^0.5.11",
     "next": "^15.2.4",
     "openai": "^4.28.0",
+    "pg": "^8.14.1",
     "puppeteer": "^22.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -28,14 +30,14 @@
     "web-vitals": "^3.5.2"
   },
   "scripts": {
-    "dev": "PORT=3100 next dev",
+    "dev": "PORT=3049 next dev",
     "build": "next build",
-    "start": "PORT=3100 next start",
-    "start:prod": "NEXT_IGNORE_ESLINT=true next build && PORT=3100 next start",
+    "start": "PORT=3049 next start",
+    "start:prod": "NEXT_IGNORE_ESLINT=true next build && PORT=3049 next start",
     "lint": "next lint",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "postinstall": "prisma generate"
+    "db:migrate": "ts-node src/db/migrate.ts"
   },
   "eslintConfig": {
     "extends": [
@@ -56,6 +58,6 @@
   },
   "devDependencies": {
     "@types/styled-components": "^5.1.34",
-    "prisma": "^5.10.0"
+    "ts-node": "^10.9.2"
   }
 }

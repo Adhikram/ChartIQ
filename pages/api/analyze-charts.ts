@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import fs from 'fs';
 import path from 'path';
-import { getChartAnalysisPrompt } from '../../prompts/chart-analysis';
+import { getChartActualAnalysisPrompt } from '../../src/prompts/chart-analysis';
 import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage } from "@langchain/core/messages";
 
@@ -55,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const messageContent = [
       {
         type: "text",
-        text: getChartAnalysisPrompt(symbol)
+        text: getChartActualAnalysisPrompt(symbol)
       },
       ...imageContents.map(base64Image => ({
         type: "image_url",

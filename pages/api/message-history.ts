@@ -1,8 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
 import { ConversationMessage } from '../../src/services/agents/stockAssistantAgent';
-
-const prisma = new PrismaClient();
+import { getLastAnalysisMessage, getConversationHistory } from '../../src/services/MessageUtil';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -19,18 +17,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const messageLimit = limit && !isNaN(Number(limit)) ? Math.min(Number(limit), 50) : 20;
 
   try {
-    console.log(`Fetching message history for userId: ${userId}, limit: ${messageLimit}`);
+    console.log(`Fetching message history for userId: ${userId}`);
     
     // First, find the last analysis message (sent by ASSISTANT)
-    const lastAnalysisMessage = await prisma.message.findFirst({
-      where: { 
-        userId,
-        role: 'SYSTEM',
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
-    });
+    const lastAnalysisMessage = await getLastAnalysisMessage(userId);
     
     if (!lastAnalysisMessage) {
       console.log(`No analysis messages found for user ${userId}`);
@@ -43,19 +33,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     console.log(`Found last analysis message from ${lastAnalysisMessage.createdAt}`);
     
-    // Then, get conversation history leading up to and including that analysis
-    const conversationHistory = await prisma.message.findMany({
-      where: { 
-        userId,
-        createdAt: {
-          lte: lastAnalysisMessage.createdAt
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      },
-      take: messageLimit
-    });
+    // Get conversation history
+    const conversationHistory = await getConversationHistory(userId);
     
     // Sort messages in chronological order (oldest first)
     const sortedMessages = [...conversationHistory].reverse();

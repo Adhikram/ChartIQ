@@ -76,22 +76,28 @@ export const useAnalysis = (): AnalysisResult => {
     }
   }, []);
 
-  // Add helper function for generating a single chart
-  const generateChart = async (symbol: string, interval: string): Promise<string> => {
-    const response = await fetch('/api/generate-chart', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ symbol, interval })
-    });
+  // Add helper function for generating a single chart with improved error handling
+  const generateChart = async (symbol: string, interval: string): Promise<string | null> => {
+    try {
+      const response = await fetch('/api/generate-chart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol, interval })
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to generate ${interval} chart: ${response.status}`);
+      if (!response.ok) {
+        console.error(`Failed to generate ${interval} chart: ${response.status}`);
+        return null; // Return null instead of throwing
+      }
+
+      const data = await response.json();
+      return data.chartUrl;
+    } catch (error) {
+      console.error(`Error in chart generation for ${symbol} ${interval}:`, error);
+      return null; // Return null for any error
     }
-
-    const data = await response.json();
-    return data.chartUrl;
   };
 
   // Update handleAnalyze function
@@ -109,13 +115,17 @@ export const useAnalysis = (): AnalysisResult => {
     try {
       setAgentLoading(true);
       
-      // Add the user analysis request to the database
+      // Add the user analysis request to the database via API instead of direct DB call
       try {
         const message = `Analyze ${symbolToAnalyze}`;
-        const lastUserMessage = await saveMessageToDatabase(message, userId, 'USER');
-        if (lastUserMessage) {
-          lastUserMessageIdRef.current = lastUserMessage.id;
-          console.log('User analysis request saved to database:', lastUserMessage.id);
+        // Use the existing API endpoint
+        const response = await saveMessageToDatabase(message, userId, 'USER');
+        
+        if (response) {
+          lastUserMessageIdRef.current = response.id;
+          console.log('User analysis request saved to database:', response.id);
+        } else {
+          console.error('Error saving user analysis request:');
         }
       } catch (dbError) {
         console.error('Error saving user analysis request:', dbError);
@@ -139,27 +149,36 @@ export const useAnalysis = (): AnalysisResult => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Generate charts sequentially
+      // Generate charts sequentially with error handling
       const chartUrls: string[] = [];
       const intervalMap = {
-        // 'Hourly': '60',
-        // '4 Hourly': '240',
+        'Hourly': '60',
+        '4 Hourly': '240',
         'Daily': 'D'
       };
       
-        for (const interval of Object.keys(intervalMap)) {
+      for (const interval of Object.keys(intervalMap)) {
         setStatusMessage(`Generating ${interval} chart for ${symbolToAnalyze}...`);
         try {
           const chartUrl = await generateChart(symbolToAnalyze, intervalMap[interval as keyof typeof intervalMap]);
-          chartUrls.push(chartUrl);
-          console.log(`Generated ${interval} chart:`, chartUrl);
+          if (chartUrl) {
+            chartUrls.push(chartUrl);
+            console.log(`Generated ${interval} chart:`, chartUrl);
+          } else {
+            console.warn(`Could not generate ${interval} chart, continuing analysis...`);
+          }
         } catch (error) {
           console.error(`Error generating ${interval} chart:`, error);
-          throw error;
+          // Continue with analysis even if chart generation fails
         }
       }
       
-      // Step 2: Now analyze the charts with the chartUrls
+      // Continue with analysis even if no charts were generated
+      if (chartUrls.length === 0) {
+        console.warn('No charts could be generated, continuing with analysis without charts...');
+      }
+      
+      // Step 2: Now analyze the charts with the chartUrls (or without them if none were generated)
       setStatusMessage(`Analyzing ${symbolToAnalyze} across multiple timeframes...`);
       
       // Prepare the request with the chartUrls
@@ -262,10 +281,9 @@ export const useAnalysis = (): AnalysisResult => {
         // Save the analysis results to database
         try {
           if (myAccumulatedContent && myAccumulatedContent.trim()) {
-            // Then save the same content as a SYSTEM message for future reference
+            // Then save the same content as a SYSTEM message for future reference via API
             const savedSystemMessage = await saveMessageToDatabase(myAccumulatedContent, userId, 'SYSTEM');
-            console.log('Analysis result also saved as SYSTEM message for future reference:', savedSystemMessage?.id);
-            
+
             // Update the message with the real ID if we got one back
             if (savedSystemMessage) {
               setMessages(prev => prev.map(msg => 
@@ -361,4 +379,4 @@ export const useAnalysis = (): AnalysisResult => {
     loadPreviousAnalysis,
     handleAnalyze
   };
-}; 
+};

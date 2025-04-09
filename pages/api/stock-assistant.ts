@@ -1,11 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client';
 import { stockAssistantAgent } from '../../src/services/agents/stockAssistantAgent';
-
-// Import the ConversationMessage interface from the agent file
+import { saveMessageToDatabase, getMessageHistory, getLastAnalysisMessage } from '../../src/services/MessageUtil';
 import { ConversationMessage } from '../../src/services/agents/stockAssistantAgent';
-
-const prisma = new PrismaClient();
 
 /**
  * API route for the stock assistant agent
@@ -40,20 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       console.log("No analysis provided, fetching from database...");
       
       try {
-        // Find the last analysis message (sent by ASSISTANT)
-        const lastAnalysisMessage = await prisma.message.findFirst({
-          where: { 
-            userId,
-            role: 'ASSISTANT',
-            // Ensure it's a full analysis message (typically longer than quick responses)
-            content: {
-              contains: 'Timeframe' // A keyword likely to be in analysis messages
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          }
-        });
+        const lastAnalysisMessage = await getLastAnalysisMessage(userId);
         
         if (lastAnalysisMessage) {
           analysisContent = lastAnalysisMessage.content;
@@ -82,19 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } else {
       console.log("No client conversation history provided, fetching from database...");
       try {
-        // Get the most recent messages before the analysis
-        const messageHistory = await prisma.message.findMany({
-          where: { 
-            userId,
-            createdAt: {
-              lt: new Date() // Current timestamp as a default - will get recent messages
-            }
-          },
-          orderBy: {
-            createdAt: 'desc'
-          },
-          take: 10 // Limit to 10 messages for context
-        });
+        const messageHistory = await getMessageHistory(userId); 
         
         // Format conversation history
         conversationHistory = messageHistory.map(msg => ({
@@ -119,13 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Save the assistant's response to the database
     try {
-      await prisma.message.create({
-        data: {
-          role: 'ASSISTANT',
-          content: response,
-          userId
-        }
-      });
+      await saveMessageToDatabase(response, userId, 'ASSISTANT');
       console.log('Saved assistant response to database');
     } catch (saveError) {
       console.error('Failed to save assistant response:', saveError);

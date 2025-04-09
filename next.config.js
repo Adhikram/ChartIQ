@@ -2,18 +2,30 @@
 const nextConfig = {
   reactStrictMode: true,
   images: {
-    domains: ['localhost', 'adhi1.btc.cfd'],
+    domains: ['localhost', 'ta.btc.cfd'],
   },
   experimental: {
     // Enable WebSocket support
     webpackBuildWorker: true,
   },
   // Add proper server external packages config
-  serverExternalPackages: ['puppeteer'],
+  serverExternalPackages: ['puppeteer', 'pg', 'pg-native'],
   // Single webpack config that handles all cases
   webpack: (config, { dev, isServer }) => {
-    // Add puppeteer to externals
-    config.externals = [...(config.externals || []), 'puppeteer'];
+    // Add puppeteer and pg to externals
+    config.externals = [...(config.externals || []), 'puppeteer', 'pg'];
+    
+    // Handle pg dependencies for client-side
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        pg: false,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false
+      };
+    }
     
     // Fix HMR issues in development
     if (dev && !isServer) {
@@ -35,6 +47,12 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
           { key: 'Access-Control-Allow-Headers', value: 'Content-Type' }
         ]
+      },
+      {
+        source: '/_next/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: 'https://ta.btc.cfd' }
+        ]
       }
     ];
   },
@@ -47,8 +65,8 @@ const nextConfig = {
       }
     ];
   },
-  // Allow origin for dev tools
-  allowedDevOrigins: ['adhi1.btc.cfd'],
+  // Allow origin for dev tools and production domain
+  allowedDevOrigins: ['adhi1.btc.cfd', 'ta.btc.cfd', 'https://ta.btc.cfd'],
 }
 
 module.exports = nextConfig 

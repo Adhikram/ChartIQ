@@ -242,16 +242,20 @@ export const useMessages = (): MessagesResult => {
       // 1. Add message to UI
       setMessages(prev => [...prev, newUserMessage]);
       
-      // 2. Save user message to database
-      const savedUserMessage = await saveMessageToDatabase(userMessage, userId, 'USER');
-      
-      if (savedUserMessage && savedUserMessage.id) {
-        setLastUserMessageId(savedUserMessage.id);
+      // 2. Save user message to database via API instead of direct DB call
+      try {
+        const savedUserMessage = await saveMessageToDatabase(userMessage, userId, 'USER');
         
-        // Update the temp message with the real ID
-        setMessages(prev => prev.map(msg => 
-          msg.id === tempUserId ? { ...msg, id: savedUserMessage.id } : msg
-        ));
+        if (savedUserMessage && savedUserMessage.id) {
+          setLastUserMessageId(savedUserMessage.id);
+          
+          // Update the temp message with the real ID
+          setMessages(prev => prev.map(msg => 
+            msg.id === tempUserId ? { ...msg, id: savedUserMessage.id } : msg
+          ));
+        }
+      } catch (dbError) {
+        console.error('Error saving user message to database:', dbError);
       }
       
       // 3. Create conversation history from UI messages only
