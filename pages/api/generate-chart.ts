@@ -41,9 +41,6 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
     //   }
     // });
 
-    // Set a longer timeout for navigation (60 seconds)
-    page.setDefaultNavigationTimeout(60000);
-
     // Set a small viewport size for faster rendering
     await page.setViewport({ width: 1920, height: 1080 });
 
@@ -69,26 +66,6 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
       });
       
       // Add a script to detect when the TradingView chart is fully loaded
-      await page.evaluate(() => {
-        return new Promise((resolve) => {
-          const checkInterval = setInterval(() => {
-            // Look for elements that indicate chart is loaded
-            const chartElements = document.querySelectorAll('.chart-markup-table');
-            const loadingIndicator = document.querySelector('.loading-indicator');
-            
-            if (chartElements.length > 0 && !loadingIndicator) {
-              clearInterval(checkInterval);
-              resolve(true);
-            }
-          }, 500);
-          
-          // Fallback timeout after 20 seconds
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            resolve(false);
-          }, 20000);
-        });
-      });
       
       // Additional wait to ensure chart data is fully rendered
       console.log(`Additional wait for chart data to render for ${symbol} ${interval}...`);
