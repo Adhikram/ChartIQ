@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { ChatMessage } from '../types';
-import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../../services/MessageUtil';
+import { saveMessageToDatabase, removeLastUserMessage } from '../../../services/MessageUtil';
 
 export interface AnalysisResult {
   previousAnalysis: string;
@@ -281,7 +281,7 @@ export const useAnalysis = (): AnalysisResult => {
                       msg.id === tempAssistantId 
                         ? { 
                             ...msg, 
-                            content: formatTechnicalAnalysis(myAccumulatedContent),
+                            content:  myAccumulatedContent,
                             rawContent: myAccumulatedContent,
                             role: 'ASSISTANT'
                           }
@@ -326,7 +326,7 @@ export const useAnalysis = (): AnalysisResult => {
                 msg.id === tempAssistantId ? { 
                   ...msg,
                   id: savedSystemMessage.id,
-                  content: formatTechnicalAnalysis(myAccumulatedContent),
+                  content: myAccumulatedContent,
                   rawContent: myAccumulatedContent,
                   // chartUrl: chartUrls[0],
                   role: 'SYSTEM'
@@ -337,13 +337,13 @@ export const useAnalysis = (): AnalysisResult => {
               setMessages(prev => prev.map(msg => 
                 msg.id === tempAssistantId ? { 
                   ...msg,
-                  content: formatTechnicalAnalysis(myAccumulatedContent),
+                    content: myAccumulatedContent,
                   rawContent: myAccumulatedContent,
                   // chartUrl: chartUrls[0],
                   role: 'SYSTEM'
                 } : msg
               ));
-            }
+            } 
           } else {
             console.warn('No content to save to database');
             if (lastUserMessageIdRef.current) {
@@ -359,7 +359,7 @@ export const useAnalysis = (): AnalysisResult => {
           setMessages(prev => prev.map(msg => 
             msg.id === tempAssistantId ? { 
               ...msg,
-              content: formatTechnicalAnalysis(myAccumulatedContent),
+              content: myAccumulatedContent,
               rawContent: myAccumulatedContent,
               // chartUrl: chartUrls[0],
               role: 'SYSTEM'

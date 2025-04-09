@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
 import { ChatMessage, ConversationMessage, PaginationInfo } from '../types';
-import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../../services/MessageUtil';
+import { saveMessageToDatabase, removeLastUserMessage } from '../../../services/MessageUtil';
 
 // Helper function to create a fallback welcome message
 const createWelcomeMessage = (symbol: string): ChatMessage => {
@@ -148,7 +148,7 @@ export const useMessages = (): MessagesResult => {
           const isAssistant = msg.role === 'ASSISTANT' || msg.role === 'SYSTEM';
           return {
             id: msg.id || `msg-${Date.now()}-${Math.random()}`,
-            content: isAssistant ? formatTechnicalAnalysis(msg.content) : msg.content,
+            content: msg.content,
             rawContent: isAssistant ? msg.content : undefined,
             timestamp: msg.createdAt || new Date().toISOString(),
             isUser: msg.role === 'USER',
@@ -347,7 +347,7 @@ export const useMessages = (): MessagesResult => {
           msg.id === tempAssistantId ? { 
             ...msg, 
             id: data.messageId || tempAssistantId,
-            content: formatTechnicalAnalysis(data.response),
+            content: data.response,
             rawContent: data.response,
             timestamp: new Date().toISOString(),
             role: 'ASSISTANT',

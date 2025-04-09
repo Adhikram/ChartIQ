@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Box, Typography, CircularProgress, Fade, useMediaQuery, useTheme } from '@mui/material';
-import { formatTechnicalAnalysis } from '../../../services/MessageUtil';
 import { ChatMessage } from '../types';
 import { MessageContainer, DateSeparator, TimeStamp, LoadingContainer, MessageWrapper, MessageAvatar } from '../styles';
+import ReactMarkdown from 'react-markdown';
 
 interface ChatMessagesProps {
   messages: ChatMessage[];
@@ -113,11 +113,6 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
           new Date(message.timestamp).toDateString() !== 
           new Date(messages[index - 1].timestamp).toDateString();
         
-        // Format message content if it's an assistant message with technical analysis
-        const formattedContent = !message.isUser 
-          ? formatTechnicalAnalysis(message.content) 
-          : message.content;
-
         // Check if this is a new message for animation
         const isNewMessage = index >= prevMessagesCountRef.current;
 
@@ -183,91 +178,81 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, loading, messageE
                       {message.content}
                     </Typography>
                   ) : (
-                    <Box 
-                      component="div"
-                      sx={{ 
-                        fontWeight: '400',
-                        lineHeight: 1.6,
-                        fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
-                        fontSize: isMobile ? '0.85rem' : '0.9rem',
-                        letterSpacing: '0.01em',
-                        '& .mobile-analysis-content': {
-                          width: '100%',
-                        },
-                        '& .timeframe-container': {
-                          marginTop: '0.7rem',
-                          marginBottom: '0.4rem',
-                          padding: '0.4rem 0',
-                          borderBottom: '1px solid rgba(0,0,0,0.08)',
-                        },
-                        '& .section-container': {
-                          marginTop: '0.9rem',
-                          marginBottom: '0.6rem',
-                        },
-                        '& .Price-container': {
-                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.9rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .On-Balance-container': {
-                          backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.9rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .Momentum-container': {
-                          backgroundColor: 'rgba(255, 152, 0, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.9rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .Trend-container': {
-                          backgroundColor: 'rgba(156, 39, 176, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.9rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .Summary-container': {
-                          backgroundColor: 'rgba(13, 71, 161, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.9rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .Outlook-container': {
-                          backgroundColor: 'rgba(0, 137, 123, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.5rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .Signals-container': {
-                          backgroundColor: 'rgba(96, 125, 139, 0.08)',
-                          padding: '0.7rem',
-                          borderRadius: '0.6rem',
-                          marginBottom: '0.5rem',
-                          boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.03)',
-                        },
-                        '& .assistant-prefix': {
-                          fontWeight: 'bold',
-                          color: isSystemMessage ? '#0288D1' : '#10a37f', // Different color for system messages
-                          marginBottom: '0.5rem',
-                          display: 'block',
-                        },
-                        '& mark': {
-                          backgroundColor: 'rgba(25, 118, 210, 0.08)',
-                          color: 'rgba(25, 118, 210, 0.9)',
-                          padding: '0.1rem 0.3rem',
-                          borderRadius: '0.2rem',
-                        }
-                      }}
-                      dangerouslySetInnerHTML={{__html: formattedContent}}
-                    />
+                    (() => { // IIFE for conditional rendering logic
+                      const isAnalyzingMessage = 
+                        message.content.includes('class="assistant-prefix"') &&
+                        message.content.includes('class="typing-indicator"');
+
+                      if (isAnalyzingMessage) {
+                        // Render the pre-formatted HTML using dangerouslySetInnerHTML
+                        return <Box 
+                          component="div"
+                          sx={{ /* Add any necessary base styles if needed */ }}
+                          dangerouslySetInnerHTML={{__html: message.content}}
+                        />;
+                      } else {
+                        // Render Markdown content using ReactMarkdown
+                        return (
+                          <Box // Use a Box for styling the markdown container
+                            sx={{ 
+                              fontWeight: '400',
+                              lineHeight: 1.6,
+                              fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+                              fontSize: isMobile ? '0.85rem' : '0.9rem',
+                              letterSpacing: '0.01em',
+                              '& h1': { 
+                                fontSize: '1.5em',
+                                margin: '0.8em 0 0.5em',
+                              },
+                              '& h2': { 
+                                fontSize: '1.25em',
+                                marginTop: '0.7rem',
+                                marginBottom: '0.4rem',
+                                padding: '0.4rem 0',
+                                borderBottom: '1px solid rgba(0,0,0,0.08)',
+                              },
+                              '& h3': {
+                                fontSize: '1.1em',
+                                marginTop: '0.9rem',
+                                marginBottom: '0.6rem',
+                              },
+                              '& p': {
+                                margin: '0.5em 0',
+                              },
+                              '& ul, & ol': {
+                                paddingLeft: '1.5em',
+                                margin: '0.5em 0',
+                              },
+                              '& li': {
+                                marginBottom: '0.3em',
+                              },
+                              '& strong': { 
+                                fontWeight: 'bold',
+                              },
+                              '& em': { 
+                                fontStyle: 'italic',
+                              },
+                              '& .assistant-prefix': { // This likely won't be hit for ReactMarkdown, but keep for safety
+                                fontWeight: 'bold',
+                                color: isSystemMessage ? '#0288D1' : '#10a37f',
+                                marginBottom: '0.5rem',
+                                display: 'block',
+                              },
+                              '& mark': {
+                                backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                                color: 'rgba(25, 118, 210, 0.9)',
+                                padding: '0.1rem 0.3rem',
+                                borderRadius: '0.2rem',
+                              }
+                            }}
+                          >
+                            <ReactMarkdown>
+                              {message.content}
+                            </ReactMarkdown>
+                          </Box>
+                        );
+                      }
+                    })()
                   )}
                   
                   <TimeStamp>

@@ -3,7 +3,7 @@ import { Box, Modal, useMediaQuery, useTheme, IconButton, Typography } from '@mu
 import { AppContainer, GlobalStyle } from './styles';
 import { AppHeader, ChatInput, ChatMessages, SymbolSelector } from './components';
 import { ChatMessage, ConversationMessage, PaginationInfo } from './types';
-import { saveMessageToDatabase, removeLastUserMessage, formatTechnicalAnalysis } from '../../services/MessageUtil';
+import { saveMessageToDatabase, removeLastUserMessage } from '../../services/MessageUtil';
 import TelegramAuthWrapper from '../TelegramAuthWrapper';
 
 // Replace with your bot token
@@ -160,7 +160,7 @@ const AssistantApp: React.FC = () => {
           const isAssistant = msg.role === 'ASSISTANT';
           return {
             id: msg.id,
-            content: isAssistant ? formatTechnicalAnalysis(msg.content) : msg.content,
+            content: msg.content,
             rawContent: isAssistant ? msg.content : undefined,
             timestamp: msg.createdAt,
             isUser: msg.role === 'USER',
@@ -290,7 +290,7 @@ const AssistantApp: React.FC = () => {
           msg.id === tempAssistantId ? { 
             ...msg, 
             id: data.messageId || tempAssistantId,
-            content: formatTechnicalAnalysis(data.response),
+            content: data.response,
             rawContent: data.response,
             timestamp: new Date().toISOString()
           } : msg

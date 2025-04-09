@@ -18,6 +18,8 @@ Your response MUST follow this specific format:
 export const getChartActualAnalysisPrompt = (symbol?: string): string => {
   return `Please analyze these charts for ${symbol || 'the asset'} and provide technical analysis. The charts are in 1h, 4h, and 1d timeframes.
 
+Format your entire response using Markdown syntax only. Do not use any HTML tags (like <span>).
+
 Your response MUST follow this specific format:
 # ${symbol || 'Asset'}
 
