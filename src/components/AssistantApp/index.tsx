@@ -286,6 +286,7 @@ const AssistantApp: React.FC = () => {
       // Add agent response to messages
       if (data.response) {
         // Update the temporary message with the real content
+        await saveMessageToDatabase(data.response, userId, 'ASSISTANT');
         setMessages(prev => prev.map(msg => 
           msg.id === tempAssistantId ? { 
             ...msg, 

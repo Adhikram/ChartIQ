@@ -87,15 +87,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       conversationHistory,
       userId
     );
-
-    // Save the assistant's response to the database
-    try {
-      await saveMessageToDatabase(response, userId, 'ASSISTANT');
-      console.log('Saved assistant response to database');
-    } catch (saveError) {
-      console.error('Failed to save assistant response:', saveError);
-      // Continue even if save fails
-    }
     
     // Add the new message pair to conversation history for the next query
     const updatedHistory = [

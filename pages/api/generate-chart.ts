@@ -69,7 +69,7 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
       
       // Additional wait to ensure chart data is fully rendered
       console.log(`Additional wait for chart data to render for ${symbol} ${interval}...`);
-      await new Promise(resolve => setTimeout(resolve, 5000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
     } catch (waitError) {
       console.error(`Timeout waiting for chart elements for ${symbol} ${interval}:`, waitError);
       console.log(`Taking screenshot anyway after timeout...`);

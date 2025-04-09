@@ -354,6 +354,7 @@ export const useMessages = (): MessagesResult => {
           } : msg
         ));
         
+        await saveMessageToDatabase(data.response, userId, 'ASSISTANT');
         // 9. Manually update conversation history to keep it in sync
         // This avoids unnecessary API calls
         const assistantHistoryMessage: ConversationMessage = {
