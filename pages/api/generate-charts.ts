@@ -29,9 +29,6 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
     
     const page = await browser.newPage();
 
-    // Set a longer timeout for navigation (30 seconds)
-    page.setDefaultNavigationTimeout(30000);
-
     // Set a small viewport size for faster rendering
     await page.setViewport({ width: 1920, height: 1080 });
 
@@ -46,33 +43,11 @@ async function generateScreenshot(url: string, symbol: string, interval: string)
     } catch (navError) {
       console.error(`Navigation timeout for ${url}. Continuing anyway.`);
     }
-
-    console.log(`Waiting for TradingView widget to load for ${symbol} ${interval}...`);
-    
-    // Wait for TradingView widget container to be visible
     try {
-      // Add a script to detect when the TradingView chart is fully loaded
-      await page.evaluate(() => {
-        return new Promise((resolve) => {
-          const checkInterval = setInterval(() => {
-            // Look for elements that indicate chart is loaded
-            const chartElements = document.querySelectorAll('.chart-markup-table');
-            const loadingIndicator = document.querySelector('.loading-indicator');
-            
-            if (chartElements.length > 0 && !loadingIndicator) {
-              clearInterval(checkInterval);
-              resolve(true);
-            }
-          }, 500);
-          
-          // Fallback timeout after 20 seconds
-          setTimeout(() => {
-            clearInterval(checkInterval);
-            resolve(false);
-          }, 20000);
-        });
+      await page.waitForSelector('.tradingview-widget-container', { 
+        visible: true,
+        timeout: 30000 
       });
-      
       // Additional wait to ensure chart data is fully rendered
       console.log(`Additional wait for chart data to render for ${symbol} ${interval}...`);
       await new Promise(resolve => setTimeout(resolve, 5000));
@@ -125,8 +100,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Only process one chart at a time to reduce server load
     const urls = [
       { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=60`, interval: '1hr' },
-      // { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=240`, interval: '4hr' },
-      // { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=D`, interval: '1d' },
+      { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=240`, interval: '4hr' },
+      { url: `${process.env.NEXT_PUBLIC_BASE_URL}/chart?symbol=${symbol}&interval=D`, interval: '1d' },
     ];
 
     const screenshotUrls = await Promise.all(urls.map(url => generateScreenshot(url.url, symbol, url.interval)));

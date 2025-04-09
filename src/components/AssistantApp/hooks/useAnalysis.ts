@@ -149,44 +149,80 @@ export const useAnalysis = (): AnalysisResult => {
         messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
       
-      // Generate charts sequentially with error handling
-      const chartUrls: string[] = [];
-      const intervalMap = {
-        'Hourly': '60',
-        '4 Hourly': '240',
-        'Daily': 'D'
-      };
+      // // Generate charts sequentially with error handling
+      // const chartUrls: string[] = [];
+      // const intervalMap = {
+      //   'Hourly': '60',
+      //   '4 Hourly': '240',
+      //   'Daily': 'D'
+      // };
       
-      for (const interval of Object.keys(intervalMap)) {
-        setStatusMessage(`Generating ${interval} chart for ${symbolToAnalyze}...`);
-        try {
-          const chartUrl = await generateChart(symbolToAnalyze, intervalMap[interval as keyof typeof intervalMap]);
-          if (chartUrl) {
-            chartUrls.push(chartUrl);
-            console.log(`Generated ${interval} chart:`, chartUrl);
-          } else {
-            console.warn(`Could not generate ${interval} chart, continuing analysis...`);
-          }
-        } catch (error) {
-          console.error(`Error generating ${interval} chart:`, error);
-          // Continue with analysis even if chart generation fails
-        }
+      // for (const interval of Object.keys(intervalMap)) {
+      //   setStatusMessage(`Generating ${interval} chart for ${symbolToAnalyze}...`);
+      //   try {
+      //     const chartUrl = await generateChart(symbolToAnalyze, intervalMap[interval as keyof typeof intervalMap]);
+      //     if (chartUrl) {
+      //       chartUrls.push(chartUrl);
+      //       console.log(`Generated ${interval} chart:`, chartUrl);
+      //     } else {
+      //       console.warn(`Could not generate ${interval} chart, continuing analysis...`);
+      //     }
+      //   } catch (error) {
+      //     console.error(`Error generating ${interval} chart:`, error);
+      //     // Continue with analysis even if chart generation fails
+      //   }
+      // }
+      
+      // // Continue with analysis even if no charts were generated
+      // if (chartUrls.length === 0) {
+      //   console.warn('No charts could be generated, continuing with analysis without charts...');
+      // }
+      
+      // // Step 2: Now analyze the charts with the chartUrls (or without them if none were generated)
+      // setStatusMessage(`Analyzing ${symbolToAnalyze} across multiple timeframes...`);
+      
+      // // Prepare the request with the chartUrls
+      // const requestData = {
+      //   chartUrls,
+      //   symbol: symbolToAnalyze,
+      //   userId
+      // };
+      
+      // Step 1: Generate charts first
+      console.log('Generating charts for symbol:', symbolToAnalyze);
+      setStatusMessage(`Generating charts for ${symbolToAnalyze}...`);
+      
+      const generateChartsResponse = await fetch('/api/generate-charts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ symbol: symbolToAnalyze })
+      });
+      
+      if (!generateChartsResponse.ok) {
+        const errorText = await generateChartsResponse.text();
+        console.error('Error response from generate-charts:', errorText);
+        throw new Error(`Error generating charts: ${generateChartsResponse.status} - ${errorText}`);
       }
       
-      // Continue with analysis even if no charts were generated
-      if (chartUrls.length === 0) {
-        console.warn('No charts could be generated, continuing with analysis without charts...');
+      const chartsData = await generateChartsResponse.json();
+      console.log('Generated charts:', chartsData);
+      
+      if (!chartsData.chartUrls || chartsData.chartUrls.length === 0) {
+        throw new Error('No chart URLs generated. Please try again.');
       }
       
-      // Step 2: Now analyze the charts with the chartUrls (or without them if none were generated)
-      setStatusMessage(`Analyzing ${symbolToAnalyze} across multiple timeframes...`);
+      // Step 2: Now analyze the charts with the chartUrls from step 1
+      setStatusMessage(`Analyzing ${symbolToAnalyze}...`);
       
-      // Prepare the request with the chartUrls
+      // Prepare the request with the same format as TelegramTradingApp
       const requestData = {
-        chartUrls,
+        chartUrls: chartsData.chartUrls,
         symbol: symbolToAnalyze,
         userId
       };
+      
       
       console.log('Sending analyze-charts request:', requestData);
       
@@ -292,7 +328,7 @@ export const useAnalysis = (): AnalysisResult => {
                   id: savedSystemMessage.id,
                   content: formatTechnicalAnalysis(myAccumulatedContent),
                   rawContent: myAccumulatedContent,
-                  chartUrl: chartUrls[0],
+                  // chartUrl: chartUrls[0],
                   role: 'SYSTEM'
                 } : msg
               ));
@@ -303,7 +339,7 @@ export const useAnalysis = (): AnalysisResult => {
                   ...msg,
                   content: formatTechnicalAnalysis(myAccumulatedContent),
                   rawContent: myAccumulatedContent,
-                  chartUrl: chartUrls[0],
+                  // chartUrl: chartUrls[0],
                   role: 'SYSTEM'
                 } : msg
               ));
@@ -325,7 +361,7 @@ export const useAnalysis = (): AnalysisResult => {
               ...msg,
               content: formatTechnicalAnalysis(myAccumulatedContent),
               rawContent: myAccumulatedContent,
-              chartUrl: chartUrls[0],
+              // chartUrl: chartUrls[0],
               role: 'SYSTEM'
             } : msg
           ));
