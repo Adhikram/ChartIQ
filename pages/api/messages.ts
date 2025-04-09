@@ -48,7 +48,7 @@ async function handlePostMessage(req: NextApiRequest, res: NextApiResponse) {
 // Handle DELETE request to remove a message
 async function handleDeleteMessage(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { messageId } = req.query;
+    const { messageId, role } = req.query;
     
     // Validate required fields
     if (!messageId || typeof messageId !== 'string') {
@@ -57,8 +57,8 @@ async function handleDeleteMessage(req: NextApiRequest, res: NextApiResponse) {
 
     // Delete message
     const result = await db.query(
-      'DELETE FROM "Message" WHERE id = $1',
-      [messageId]
+      'DELETE FROM "Message" WHERE id = $1 AND role = $2',
+      [messageId, role]
     );
 
     if (result.rowCount > 0) {
